@@ -19,8 +19,8 @@ WARNINGS = -Wall -Wextra -Waggressive-loop-optimizations          \
 -Wno-missing-field-initializers -Wno-narrowing                                \
 -Wno-varargs -Wstack-usage=8192 -Wstack-protector 
 
-FLAGS_GCC = -std=c11 -fstack-protector-strong -fcheck-new -fstrict-overflow $(WARNINGS)
-FLAGS_CLANG = -std=c11 -fstack-protector-strong -fcheck-new -fstrict-overflow -Wall -Wextra
+FLAGS_GCC = -std=c2x -fstack-protector-strong -fcheck-new -fstrict-overflow $(WARNINGS)
+FLAGS_CLANG = -std=c2x -fstack-protector-strong -fcheck-new -fstrict-overflow -Wall -Wextra
 
 ASAN_FLAGS = -fsanitize=address,bool,bounds,enum,float-cast-overflow,$\
 float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,$\

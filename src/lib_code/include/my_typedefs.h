@@ -1,8 +1,8 @@
 #ifndef LIB_MYTYPEDEFS_H_
 #define LIB_MYTYPEDEFS_H_
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <sys/types.h>
 
 #include "lib_config.h"
@@ -17,4 +17,9 @@ typedef ssize_t ErrorCounter;
 // Counter for variables that used to count
 // Error prefix means that negative numbers used for errors
 
-#endif // LIB_MYTYPEDEFS_H_
+typedef struct FatPointer {
+    void* ptr;
+    size_t size_in_bytes;
+} FatPointer;
+
+#endif  // LIB_MYTYPEDEFS_H_

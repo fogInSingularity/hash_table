@@ -11,4 +11,4 @@ typedef struct HashTElem {
     StringView string;
 } HashTElem;
 
-#endif // HASH_TABLE_ELEM_H_
+#endif  // HASH_TABLE_ELEM_H_

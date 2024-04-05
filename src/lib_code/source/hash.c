@@ -1,5 +1,7 @@
 #include "hash.h"
 
+#include <string.h>
+
 //-----------------------------------------------------
 
 static uint32_t HashScramble(uint32_t k);
@@ -7,7 +9,7 @@ static uint32_t HashScramble(uint32_t k);
 //------------------------------------------------------
 
 HashValue Hash(const uint8_t* key, size_t len, uint32_t seed) {
-	uint32_t h = seed;
+    uint32_t h = seed;
     uint32_t k = 0;
 
     for (size_t i = len >> 2; i; i--) {
@@ -28,23 +30,22 @@ HashValue Hash(const uint8_t* key, size_t len, uint32_t seed) {
 
     h ^= HashScramble(k);
 
-	h ^= (uint32_t)len;
-	h ^= h >> 16;
-	h *= 0x85ebca6b;
-	h ^= h >> 13;
-	h *= 0xc2b2ae35;
-	h ^= h >> 16;
+    h ^= (uint32_t)len;
+    h ^= h >> 16;
+    h *= 0x85ebca6b;
+    h ^= h >> 13;
+    h *= 0xc2b2ae35;
+    h ^= h >> 16;
 
-	return h;
+    return h;
 }
 
 //---------------------------------------
 
 static inline uint32_t HashScramble(uint32_t k) {
     k *= 0xcc9e2d51;
-    k  = (k << 15) | (k >> 17);
+    k = (k << 15) | (k >> 17);
     k *= 0x1b873593;
-    
+
     return k;
 }
-

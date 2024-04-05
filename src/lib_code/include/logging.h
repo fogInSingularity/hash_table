@@ -3,4 +3,4 @@
 
 #define LOG $
 
-#endif // LOGGING_H_
+#endif  // LOGGING_H_

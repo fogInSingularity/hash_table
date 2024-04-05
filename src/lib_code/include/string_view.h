@@ -4,8 +4,8 @@
 #include <stddef.h>
 
 typedef struct StringView {
-  const char* str;
-  size_t len;
+    const char* str;
+    size_t len;
 } StringView;
 
-#endif // STRINGVIEW_H_
+#endif  // STRINGVIEW_H_

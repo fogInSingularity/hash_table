@@ -1,50 +1,55 @@
 #include "bin_file.h"
 
-//static-----------------------------------------------------------------------
+#include <stdlib.h>
+
+#include "my_assert.h"
+
+// static-----------------------------------------------------------------------
 
 static size_t FileSize(FILE* file);
 static void FileRead(BinData* data, FILE* file);
 
-//global-----------------------------------------------------------------------
+// global-----------------------------------------------------------------------
 
 void GetData(BinData* data, FILE* file) {
-  ASSERT(data != NULL);
-  ASSERT(file != NULL);
+    ASSERT(data != NULL);
+    ASSERT(file != NULL);
 
-  data->buf_size = FileSize(file);
+    data->buf_size = FileSize(file);
 
-  data->buf = (char*)calloc(data->buf_size + 1, sizeof(char));
+    data->buf = (char*)calloc(data->buf_size + 1, sizeof(char));
 
-  FileRead(data, file);
+    FileRead(data, file);
 }
 
 void FreeData(BinData* data) {
-  ASSERT(data != NULL);
+    ASSERT(data != NULL);
 
-  free(data->buf);
-  data->buf= NULL;
+    free(data->buf);
+    data->buf = NULL;
 
-  data->buf_size = 0;
+    data->buf_size = 0;
 }
 
-//static-----------------------------------------------------------------------
+// static-----------------------------------------------------------------------
 
 void FileRead(BinData* data, FILE* file) {
-  ASSERT(data != NULL);
-  ASSERT(file != NULL);
+    ASSERT(data != NULL);
+    ASSERT(file != NULL);
 
-  fread(data->buf, sizeof(char), data->buf_size, file);
-  data->buf[data->buf_size] = '\0';
+    unsigned long ignore = fread(data->buf, sizeof(char), data->buf_size, file);
+    (void)ignore;
+    data->buf[data->buf_size] = '\0';
 }
 
 static size_t FileSize(FILE* file) {
-  ASSERT(file != NULL);
+    ASSERT(file != NULL);
 
-  fseek(file, 0, SEEK_END);
+    fseek(file, 0, SEEK_END);
 
-  size_t size = (size_t)ftell(file);
+    size_t size = (size_t)ftell(file);
 
-  fseek(file, 0, SEEK_SET);
+    fseek(file, 0, SEEK_SET);
 
-  return size;
+    return size;
 }

@@ -3,4 +3,4 @@
 
 static const unsigned long long kNumberOfBuckets = 13;
 
-#endif // HASH_TABLE_CFG_H_
+#endif  // HASH_TABLE_CFG_H_
