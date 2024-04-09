@@ -50,28 +50,34 @@ void HashTable_Dtor(HashTable* hash_table) {
 void HashTable_Dump(const HashTable* hash_table) {
     ASSERT(hash_table != NULL);
 
-#if defined(DEBUG_ON)
-    fprintf(stderr, "Hash Table:\n");
-    fprintf(stderr, "   number of buckets: %lu\n", hash_table->n_buckets);
-    fprintf(stderr, "   backets: %p\n", hash_table->buckets);
+// #if defined(DEBUG_ON)
+//     fprintf(stderr, "Hash Table:\n");
+//     fprintf(stderr, "   number of buckets: %lu\n", hash_table->n_buckets);
+//     fprintf(stderr, "   backets: %p\n", hash_table->buckets);
+//     for (Index i = 0; i < hash_table->n_buckets; i++) {
+//         if (hash_table->buckets[i].is_valid) {
+//             fprintf(stderr, "       [%lu] valid %lu\n", i,
+//                     hash_table->buckets[i].n_items);
+//         } else {
+//             fprintf(stderr, "       [%lu] invalid %lu\n", i,
+//                     hash_table->buckets[i].n_items);
+//         }
+//     }
+// #endif  // DEBUG_ON
+
     for (Index i = 0; i < hash_table->n_buckets; i++) {
-        if (hash_table->buckets[i].is_valid) {
-            fprintf(stderr, "       [%lu] valid %lu\n", i,
-                    hash_table->buckets[i].n_items);
-        } else {
-            fprintf(stderr, "       [%lu] invalid %lu\n", i,
-                    hash_table->buckets[i].n_items);
-        }
+        fprintf(stderr, "%lu\n", hash_table->buckets[i].n_items);
     }
-#endif  // DEBUG_ON
+
 }
 
+__attribute__((noinline))
 HashTableError HashTable_InsertByKey(HashTable* hash_table, StringView* key) {
     ASSERT(hash_table != NULL);
     ASSERT(key != NULL);
     ASSERT(key->str != NULL);
 
-    HashValue hash_key = Hash((const uint8_t*)key->str, key->len, 0);
+    HashValue hash_key = Hash(key->str, key->len);
     LListError llist_error = kLList_Success;
 
     llist_error = LList_Insert(Accessbucket(hash_table, hash_key), key);
@@ -79,8 +85,8 @@ HashTableError HashTable_InsertByKey(HashTable* hash_table, StringView* key) {
     switch (llist_error) {
         case kLList_Success:
             return kHashTable_Success;
-        case kLList_InvalidLList:
             return kHashTable_InvalidTable;
+        case kLList_InvalidLList:
         case kLList_CtorCantAlloc:
         case kLList_BadInsert:
         case kLList_NoElementToRemove:
@@ -97,7 +103,7 @@ HashTableError HashTable_RemoveByKey(HashTable* hash_table, StringView* key) {
     ASSERT(key != NULL);
     ASSERT(key->str != NULL);
 
-    HashValue hash_key = Hash((const uint8_t*)key->str, key->len, 0);
+    HashValue hash_key = Hash(key->str, key->len);
     LListError llist_error = kLList_Success;
     llist_error = LList_Remove(Accessbucket(hash_table, hash_key), key);
 
@@ -122,7 +128,7 @@ ErrorCounter HashTable_LookUpByKey(const HashTable* hash_table,
     ASSERT(key != NULL);
     ASSERT(key->str != NULL);
 
-    HashValue hash_key = Hash((const uint8_t*)key->str, key->len, 0);
+    HashValue hash_key = Hash(key->str, key->len);
 
     return LList_LookUp(Accessbucket(hash_table, hash_key), key);
 }

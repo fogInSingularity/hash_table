@@ -23,13 +23,11 @@ int main(const int argc, const char** argv) {
         for (Index i = 0; i < str_arr.size_in_bytes / sizeof(StringView); i++) {
             ht_error = HashTable_InsertByKey(&hash_table,
                                              (StringView*)str_arr.ptr + i);
-            if (ht_error != kHashTable_Success) {
-                PRINT_SIZE(i);
-            }
+            if (ht_error != kHashTable_Success) { printf("oh shit, here we go again\n"); }
         }
     }
 
-    HashTable_Dump(&hash_table);
+    // HashTable_Dump(&hash_table);
     HashTable_Dtor(&hash_table);
 
     free(str_arr.ptr);

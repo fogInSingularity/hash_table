@@ -1,6 +1,7 @@
 #include "llist.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -15,17 +16,18 @@
 
 typedef struct LLNode {
     HashTElem elem;
-    struct LLNode *next;
-    struct LLNode *prev;
+    struct LLNode* next;
+    struct LLNode* prev;
 } LLNode;
 
 #define ERROR_M(error_m) fputs(RED BOLD "error: " RESET error_m "\n", stdout);
 
-static bool CompareKeysEqual(StringView *key1, StringView *key2);
+static bool CompareKeysEqual(StringView* key1, StringView* key2);
+int faster_strncmp(const char* restrict src1, const char* restrict src2, size_t len);
 
 // global ---------------------------------------------------------------------
 
-LListError LList_Ctor(LList *list) {
+LListError LList_Ctor(LList* list) {
     ASSERT(list != NULL);
 
     list->is_valid = false;
@@ -33,8 +35,8 @@ LListError LList_Ctor(LList *list) {
     list->head = NULL;
     list->tail = NULL;
 
-    LLNode *hold_head = (LLNode *)calloc(1, sizeof(LLNode));
-    LLNode *hold_tail = (LLNode *)calloc(1, sizeof(LLNode));
+    LLNode* hold_head = (LLNode*)calloc(1, sizeof(LLNode));
+    LLNode* hold_tail = (LLNode*)calloc(1, sizeof(LLNode));
     if (hold_head == NULL || hold_tail == NULL) {
         free(NULL);
         free(hold_head);
@@ -57,15 +59,15 @@ LListError LList_Ctor(LList *list) {
     return kLList_Success;
 }
 
-void LList_Dtor(LList *list) {
+void LList_Dtor(LList* list) {
     ASSERT(list != NULL);
 
     if (!list->is_valid) {
         return;
     }
 
-    LLNode *iter_node = list->head;
-    LLNode *next_node = list->head->next;
+    LLNode* iter_node = list->head;
+    LLNode* next_node = NULL;
     while (iter_node != NULL) {
         next_node = iter_node->next;
         free(iter_node);
@@ -78,16 +80,17 @@ void LList_Dtor(LList *list) {
     list->n_items = 0;
 }
 
-LListError LList_Insert(LList *list, StringView *key) {
+__attribute__((noinline))
+LListError LList_Insert(LList* list, StringView* key) {
     ASSERT(list != NULL);
     ASSERT(key != NULL);
 
-    if (!list->is_valid) {
-        return kLList_InvalidLList;
-        $
+    if (!list->is_valid) [[clang::unlikely]] {
+    // if (!list->is_valid) {
+        return kLList_InvalidLList; $
     }
 
-    LLNode *iter_node = list->head->next;
+    LLNode* iter_node = list->head->next;
     bool is_keys_equal = false;
     while (iter_node != list->tail && !is_keys_equal) {
         is_keys_equal = CompareKeysEqual(&iter_node->elem.string, key);
@@ -96,10 +99,11 @@ LListError LList_Insert(LList *list, StringView *key) {
         }
     }
 
-    if (is_keys_equal) {
+    if (is_keys_equal) [[clang::likely]] { //optim
+    // if (is_keys_equal) {
         iter_node->elem.n_copies++;
     } else {
-        LLNode *new_node = (LLNode *)calloc(1, sizeof(LLNode));
+        LLNode* new_node = (LLNode*)calloc(1, sizeof(LLNode));
         if (new_node == NULL) {
             return kLList_BadInsert;
         }
@@ -118,16 +122,15 @@ LListError LList_Insert(LList *list, StringView *key) {
     return kLList_Success;
 }
 
-LListError LList_Remove(LList *list, StringView *key) {
+LListError LList_Remove(LList* list, StringView* key) {
     ASSERT(list != NULL);
     ASSERT(key != NULL);
 
     if (!list->is_valid) {
-        return kLList_InvalidLList;
-        $
+        return kLList_InvalidLList; $
     }
 
-    LLNode *iter_node = list->head->next;
+    LLNode* iter_node = list->head->next;
     bool is_keys_equal = false;
     while (iter_node != list->tail && !is_keys_equal) {
         is_keys_equal = CompareKeysEqual(&iter_node->elem.string, key);
@@ -137,10 +140,12 @@ LListError LList_Remove(LList *list, StringView *key) {
     }
 
     if (is_keys_equal) {
-        LLNode *hold_node = iter_node;
+        LLNode* hold_node = iter_node;
         hold_node->next->prev = hold_node->prev;
         hold_node->prev->next = hold_node->next;
         free(hold_node);
+
+        list->n_items--;
     } else {
         return kLList_NoElementToRemove;
     }
@@ -148,16 +153,15 @@ LListError LList_Remove(LList *list, StringView *key) {
     return kLList_Success;
 }
 
-ErrorCounter LList_LookUp(LList *list, StringView *key) {
+ErrorCounter LList_LookUp(LList* list, StringView* key) {
     ASSERT(list != NULL);
     ASSERT(key != NULL);
 
     if (!list->is_valid) {
-        return -1;
-        $
+        return -1; $
     }
 
-    LLNode *iter_node = list->head->next;
+    LLNode* iter_node = list->head->next;
     bool is_keys_equal = false;
     while (iter_node != list->tail && !is_keys_equal) {
         is_keys_equal = CompareKeysEqual(&iter_node->elem.string, key);
@@ -166,16 +170,15 @@ ErrorCounter LList_LookUp(LList *list, StringView *key) {
         }
     }
 
-    if (is_keys_equal) {
-        return (ErrorCounter)iter_node->elem.n_copies;
-    } else {
-        return 0;
-    }
+    return is_keys_equal 
+           ? (ErrorCounter)iter_node->elem.n_copies 
+           : 0;
 }
 
 // static ---------------------------------------------------------------------
 
-static bool CompareKeysEqual(StringView *key1, StringView *key2) {
+__attribute__((noinline))
+static bool CompareKeysEqual(StringView* key1, StringView* key2) {
     ASSERT(key1 != NULL);
     ASSERT(key2 != NULL);
 
@@ -187,7 +190,7 @@ static bool CompareKeysEqual(StringView *key1, StringView *key2) {
         return false;
     }
 
-    const char *iter = key1->len > key2->len ? key1->str : key2->str;
+    const char* iter = key1->len > key2->len ? key1->str : key2->str;
     for (Index i = min_len; i < max_len; i++) {
         if (iter[i] != '\0') {
             return false;
@@ -195,4 +198,15 @@ static bool CompareKeysEqual(StringView *key1, StringView *key2) {
     }
 
     return true;
+}
+
+// __attribute__((noinline))
+int faster_strncmp(const char* restrict src1, const char* restrict src2, size_t len) {
+    ASSERT(src1 != NULL);
+    ASSERT(src2 != NULL);
+    
+    char dif = *src1 - *src2;
+    if (dif != 0) { return dif; }
+
+    return strncmp(src1, src2, len);
 }

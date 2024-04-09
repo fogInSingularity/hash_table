@@ -28,7 +28,7 @@ object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,$\
 undefined,unreachable,vla-bound,vptr
 
 O_LEVEL = -O2
-MARCH = -march=znver1
+MARCH = -march=znver1 -mavx2
 LIBRARY = -lm
 
 PROFILE = -fprofile-use
@@ -36,7 +36,7 @@ VEC_FLAGS_GCC = -fopt-info-vec-optimized -fopt-info-vec-missed
 VEC_FLAGS_CLANG = -Rpass=loop-vectorize -Rpass-analysis=loop-vectorize -Rpass-missed=loop-vectorize -fsave-optimization-record
 # -Rpass=.* -Rpass-analysis=.* -Rpass-missed=.* -fsave-optimization-record
 
-DEBUG_FLAGS = $(FLAGS_GCC) $(ASAN_FLAGS) $(O_LEVEL) $(MARCH) $(LIBRARY) -g -ggdb -D_FORTIFY_SOURCE=2
+DEBUG_FLAGS = $(FLAGS_GCC) $(_ASAN_FLAGS) $(O_LEVEL) $(MARCH) $(LIBRARY) -g -ggdb -D_FORTIFY_SOURCE=2
 RELEASE_FLAGS = $(FLAGS_GCC) $(O_LEVEL) $(MARCH) $(LIBRARY) -s -flto -DNDEBUG -fno-omit-frame-pointer 
 
 all:
@@ -52,4 +52,16 @@ asm:
 	@$(CXX) $(INCLUDE) $(SOURCES) $(RELEASE_FLAGS) -s -S
 
 analyze:
-	@clang-tidy $(SOURCES) -checks=clang-analyzer-*,performance-*
+	@clang-tidy $(SOURCES) -checks=performance-*
+
+bench_build:
+	@clang $(INCLUDE) $(FLAGS_CLANG) $(SOURCES) $(O_LEVEL) $(LIBRARY) $(MARCH) -flto -DNDEBUG -fno-omit-frame-pointer -o $(EXE)
+
+graph:
+	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/ch_sum measures/norm  measures/ror measures/rol measures/based
+
+perf_rec:
+	@sudo perf record --call-graph dwarf ./hash_table bible.txt 2>log
+
+hotspot:
+	@sudo hotspot perf.data

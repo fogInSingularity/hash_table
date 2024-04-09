@@ -13,8 +13,6 @@
 
 // static ---------------------------------------------------------------------
 
-static const size_t kParseMinAlloc = 1024;
-
 const char* SkipPunc(const char* iter_str);
 const char* SkipSpaces(const char* iter_str);
 
@@ -23,33 +21,25 @@ FatPointer ParseToWords(BinData* file_data);
 
 // global ---------------------------------------------------------------------
 
+__attribute__((noinline))
 FatPointer ParseFile(const int argc, const char** argv, BinData* ret_bin_data) {
     ASSERT(argv != NULL);
-    $ if (argc < 2) { return (FatPointer){NULL, 0}; }
-    $
-
-        FILE* file = fopen(argv[1], "rb");
-    $ if (file == NULL) { return (FatPointer){NULL, 0}; }
-    $
-
-        BinData file_data = {};
-    $ GetData(&file_data, file);
-    $ fclose(file);
-    $
-
-        PRINT_POINTER(file_data.buf);
-    PRINT_SIZE(file_data.buf_size);
+    if (argc < 2) { return (FatPointer){NULL, 0}; }
+    
+    FILE* file = fopen(argv[1], "rb");
+    if (file == NULL) { return (FatPointer){NULL, 0}; }
+    
+    BinData file_data = {};
+    GetData(&file_data, file);
+    fclose(file);
 
     RemoveSpacesAndPunc(&file_data);
-    $ FatPointer parse_file = ParseToWords(&file_data);
-    $ if (parse_file.ptr == NULL) { return (FatPointer){NULL, 0}; }
-    $
+    FatPointer parse_file = ParseToWords(&file_data);
+    if (parse_file.ptr == NULL) { return (FatPointer){NULL, 0}; }
 
-        * ret_bin_data = file_data;
-    $
+    *ret_bin_data = file_data;
 
-        return parse_file;
-    $
+    return parse_file;
 }
 
 // static ---------------------------------------------------------------------
@@ -89,13 +79,11 @@ void RemoveSpacesAndPunc(BinData* file_data) {
 
 FatPointer ParseToWords(BinData* file_data) {
     ASSERT(file_data != NULL);
-    $
 
-        Counter number_words = 0;
-    $
+    Counter number_words = 0;
 
-        const char* iter_str = file_data->buf;
-    $ while (iter_str < file_data->buf + file_data->buf_size) {
+    const char* iter_str = file_data->buf;
+    while (iter_str < file_data->buf + file_data->buf_size) {
         iter_str = SkipSpaces(iter_str);
 
         while (!isspace(*iter_str)) {
@@ -105,31 +93,27 @@ FatPointer ParseToWords(BinData* file_data) {
 
         iter_str = SkipSpaces(iter_str);
     }
-    $
-
-        StringView* parsed_words =
-            (StringView*)calloc(number_words, sizeof(StringView));
-    $ if (parsed_words == NULL) {
+    
+    StringView* parsed_words = (StringView*)calloc(number_words, 
+                                                   sizeof(StringView));
+    if (parsed_words == NULL) {
         return (FatPointer){NULL, 0};
-        $
     }
-    $
-
-        Index iter_arr = 0;
-    $ iter_str = file_data->buf;
+     
+    Index iter_arr = 0;
+    iter_str = file_data->buf;
     while (iter_str < file_data->buf + file_data->buf_size) {
         iter_str = SkipSpaces(iter_str);
-        $ parsed_words[iter_arr].str = iter_str;
+        parsed_words[iter_arr].str = iter_str;
         while (!isspace(*iter_str)) {
             iter_str++;
-            $
         }
-        parsed_words[iter_arr].len = iter_str - parsed_words[iter_arr].str;
+
+        parsed_words[iter_arr].len = (size_t)(iter_str - parsed_words[iter_arr].str);
         iter_arr++;
 
         iter_str = SkipSpaces(iter_str);
     }
-    $
 
-        return (FatPointer){parsed_words, number_words * sizeof(StringView)};
+    return (FatPointer){parsed_words, number_words * sizeof(StringView)};
 }

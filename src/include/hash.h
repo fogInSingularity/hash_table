@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 typedef uint32_t HashValue;
-HashValue Hash(const uint8_t* key, size_t len, uint32_t seed);
+
+HashValue Hash(const char* key, size_t len);
 
 #endif  // HASH_H_
