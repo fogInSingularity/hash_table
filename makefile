@@ -1,9 +1,10 @@
-CXX = gcc
+CC = gcc
 
 EXE = hash_table
 
-SOURCES = src/source/* src/lib_code/source/*
+C_SOURCES = src/source/*.c src/lib_code/source/*.c
 INCLUDE = -Isrc/include/ -Isrc/lib_code/include/
+ASM_SOURCES = src/source/*.asm src/lib_code/source/*.asm
 
 WARNINGS = -Wall -Wextra -Waggressive-loop-optimizations          \
 -Wmissing-declarations -Wcast-align -Wcast-qual                               \
@@ -37,31 +38,54 @@ VEC_FLAGS_CLANG = -Rpass=loop-vectorize -Rpass-analysis=loop-vectorize -Rpass-mi
 # -Rpass=.* -Rpass-analysis=.* -Rpass-missed=.* -fsave-optimization-record
 
 DEBUG_FLAGS = $(FLAGS_GCC) $(_ASAN_FLAGS) $(O_LEVEL) $(MARCH) $(LIBRARY) -g -ggdb -D_FORTIFY_SOURCE=2
-RELEASE_FLAGS = $(FLAGS_GCC) $(O_LEVEL) $(MARCH) $(LIBRARY) -s -flto -DNDEBUG -fno-omit-frame-pointer 
+RELEASE_FLAGS = $(FLAGS_GCC) $(O_LEVEL) $(MARCH) $(LIBRARY) -flto -DNDEBUG -fno-omit-frame-pointer -g
+
+# release:
+# 	@$(CXX) $(INCLUDE) $(SOURCES) $(RELEASE_FLAGS) -o $(EXE) 
+# asm:
+# 	@$(CXX) $(INCLUDE) $(SOURCES) $(RELEASE_FLAGS) -s -S
+
+# all:
+# 	@$(CXX) $(INCLUDE) $(SOURCES) $(DEBUG_FLAGS) -o $(EXE) 
+
+# all: $(OBJECTS_C) $(OBJECTS_ASM)
+# 	@$(CXX) $(INCLUDE) -o $(EXE) $(OBJECTS)
+
+C_OBJECTS = $(foreach src,$(C_SOURCES), $(src:.c=.o))
+ASM_OBJECTS = $(foreach src,$(ASM_SOURCES), $(src:.asm=.o))
+OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS)
 
 all:
-	@$(CXX) $(INCLUDE) $(SOURCES) $(DEBUG_FLAGS) -o $(EXE) 
+	@echo $(OBJECTS)
+# all: $(C_OBJECTS) $(ASM_OBJECTS)
+# 	@$(CC) $(OBJECTS) hash_table 
 
-release:
-	@$(CXX) $(INCLUDE) $(SOURCES) $(RELEASE_FLAGS) -o $(EXE) 
+C_SOURCES_DIR = src/source src/lib_code/source
+$(C_SOURCES)/%.o: %.c | $(BUILDDIR)
+	$(CFLAGS) -c $< -o $@
 
-clang:
-	@clang $(INCLUDE) $(FLAGS_CLANG) $(SOURCES) $(O_LEVEL) $(LIBRARY) $(MARCH) -s -flto -DNDEBUG -fno-omit-frame-pointer  -o $(EXE)
 
-asm:
-	@$(CXX) $(INCLUDE) $(SOURCES) $(RELEASE_FLAGS) -s -S
+# bench_build:
+# 	@clang $(INCLUDE) $(FLAGS_CLANG) $(SOURCES) $(O_LEVEL) $(LIBRARY) $(MARCH) -flto -DNDEBUG -fno-omit-frame-pointer -o $(EXE) -g
 
-analyze:
-	@clang-tidy $(SOURCES) -checks=performance-*
+# analyze:
+# 	@clang-tidy $(SOURCES) -checks=performance-*
 
-bench_build:
-	@clang $(INCLUDE) $(FLAGS_CLANG) $(SOURCES) $(O_LEVEL) $(LIBRARY) $(MARCH) -flto -DNDEBUG -fno-omit-frame-pointer -o $(EXE)
 
-graph:
-	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/ch_sum measures/norm  measures/ror measures/rol measures/based
+# graph:
+# 	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/ch_sum measures/norm  measures/ror measures/rol measures/based
 
-perf_rec:
-	@sudo perf record --call-graph dwarf ./hash_table bible.txt 2>log
 
-hotspot:
-	@sudo hotspot perf.data
+
+
+# perf_rec:
+# 	@sudo perf record --call-graph dwarf ./hash_table bible.txt 2>log
+
+# hotspot:
+# 	@sudo hotspot perf.data
+
+# val:
+# 	@valgrind --tool=callgrind --dump-instr=yes ./hash_table bible.txt
+
+# kch:
+# 	@kcachegrind

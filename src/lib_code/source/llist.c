@@ -11,6 +11,16 @@
 #include "my_typedefs.h"
 #include "string_view.h"
 #include "utils.h"
+#include "faster_strncmp.h"
+
+// check for c2x clang
+#if __STDC_VERSION__ > 201710L && defined (__clang__)
+    #define LIKELY [[clang::likely]]
+    #define UNLIKELY [[clang::unlikely]]
+#else
+    #define LIKELY 
+    #define UNLIKELY 
+#endif 
 
 // static ---------------------------------------------------------------------
 
@@ -23,7 +33,7 @@ typedef struct LLNode {
 #define ERROR_M(error_m) fputs(RED BOLD "error: " RESET error_m "\n", stdout);
 
 static bool CompareKeysEqual(StringView* key1, StringView* key2);
-int faster_strncmp(const char* restrict src1, const char* restrict src2, size_t len);
+// int faster_strncmp(const char* restrict src1, const char* restrict src2, size_t len);
 
 // global ---------------------------------------------------------------------
 
@@ -85,26 +95,27 @@ LListError LList_Insert(LList* list, StringView* key) {
     ASSERT(list != NULL);
     ASSERT(key != NULL);
 
-    if (!list->is_valid) [[clang::unlikely]] {
+    if (!list->is_valid) UNLIKELY {
     // if (!list->is_valid) {
         return kLList_InvalidLList; $
     }
 
     LLNode* iter_node = list->head->next;
     bool is_keys_equal = false;
-    while (iter_node != list->tail && !is_keys_equal) {
+    while (!is_keys_equal && iter_node != list->tail) {
         is_keys_equal = CompareKeysEqual(&iter_node->elem.string, key);
         if (!is_keys_equal) {
             iter_node = iter_node->next;
         }
     }
 
-    if (is_keys_equal) [[clang::likely]] { //optim
+    if (is_keys_equal) LIKELY { //optim
     // if (is_keys_equal) {
         iter_node->elem.n_copies++;
     } else {
         LLNode* new_node = (LLNode*)calloc(1, sizeof(LLNode));
-        if (new_node == NULL) {
+        if (new_node == NULL) UNLIKELY {
+        // if (new_node == NULL) {
             return kLList_BadInsert;
         }
 
@@ -177,7 +188,6 @@ ErrorCounter LList_LookUp(LList* list, StringView* key) {
 
 // static ---------------------------------------------------------------------
 
-__attribute__((noinline))
 static bool CompareKeysEqual(StringView* key1, StringView* key2) {
     ASSERT(key1 != NULL);
     ASSERT(key2 != NULL);
@@ -185,7 +195,7 @@ static bool CompareKeysEqual(StringView* key1, StringView* key2) {
     size_t max_len = MAX(key1->len, key2->len);
     size_t min_len = MIN(key1->len, key2->len);
 
-    int first_check = strncmp(key1->str, key2->str, min_len);
+    int first_check = FasterStrncmp(key1->str, key2->str, min_len);
     if (first_check != 0) {
         return false;
     }
@@ -200,13 +210,14 @@ static bool CompareKeysEqual(StringView* key1, StringView* key2) {
     return true;
 }
 
-// __attribute__((noinline))
-int faster_strncmp(const char* restrict src1, const char* restrict src2, size_t len) {
-    ASSERT(src1 != NULL);
-    ASSERT(src2 != NULL);
+// // nedded?
+// int faster_strncmp(const char* restrict src1, const char* restrict src2, size_t len) {
+//     ASSERT(src1 != NULL);
+//     ASSERT(src2 != NULL);
     
-    char dif = *src1 - *src2;
-    if (dif != 0) { return dif; }
+//     char dif = *src1 - *src2;
+//     if (dif != 0) { return dif; }
 
-    return strncmp(src1, src2, len);
-}
+//     return strncmp(src1, src2, len);   
+// }
+
