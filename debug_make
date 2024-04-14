@@ -5,7 +5,11 @@
 # 
 # ------------------------------------------
 EXE = hash_table
-CC = gcc
+EXE_ARGS = bible.txt 
+EXE_LOG = 2>log
+
+DEBUG_CC = gcc
+RELEASE_CC = clang
 ASM = nasm
 
 WARNINGS = -Wall -Wextra -Werror
@@ -36,42 +40,43 @@ ASM_FLAGS = -Werror -g -f elf64
 
 # find . -type f -name "*.<file_ext>"
 # find . -type f -name "*.<file_ext>" -printf "./build/%f\n" | sort
-
+# ------------------------------------------------------------------------------
 
 all: ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_table.o ./src/build/parse_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o
-	@$(CC) ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_table.o ./src/build/parse_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o -o $(EXE) $(LINK_FLAGS_DEBUG)
+	@$(DEBUG_CC) ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_table.o ./src/build/parse_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o -o $(EXE) $(LINK_FLAGS_DEBUG)
 	@rm src/build/* src/lib_code/build/*
+
+# ------------------------------------------------------------------------------
+./src/build/main.o: ./src/source/main.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/build/hash_table.o: ./src/source/hash_table.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/build/parse_file.o: ./src/source/parse_file.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/build/hash.o: ./src/source/hash.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/lib_code/build/utils.o: ./src/lib_code/source/utils.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/lib_code/build/my_assert.o: ./src/lib_code/source/my_assert.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/lib_code/build/bin_file.o: ./src/lib_code/source/bin_file.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/lib_code/build/darray.o: ./src/lib_code/source/darray.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/lib_code/build/llist.o: ./src/lib_code/source/llist.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
+
+./src/lib_code/build/recalloc.o: ./src/lib_code/source/recalloc.c
+	@$(DEBUG_CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
 
 ./src/lib_code/build/faster_strncmp.o: ./src/lib_code/source/faster_strncmp.asm
 	@$(ASM) $^ $(ASM_FLAGS) -o $@
-
-./src/build/main.o: ./src/source/main.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/build/hash_table.o: ./src/source/hash_table.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/build/parse_file.o: ./src/source/parse_file.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/build/hash.o: ./src/source/hash.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/lib_code/build/utils.o: ./src/lib_code/source/utils.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/lib_code/build/my_assert.o: ./src/lib_code/source/my_assert.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/lib_code/build/bin_file.o: ./src/lib_code/source/bin_file.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/lib_code/build/darray.o: ./src/lib_code/source/darray.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/lib_code/build/llist.o: ./src/lib_code/source/llist.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
-
-./src/lib_code/build/recalloc.o: ./src/lib_code/source/recalloc.c
-	@$(CC) -c $^ $(DEBUG_FLAGS) $(INCLUDE) -o $@
 
