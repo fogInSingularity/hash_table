@@ -12,6 +12,7 @@ typedef ssize_t ErrorIndex;
 typedef uint8_t Byte;
 typedef size_t Counter;
 typedef ssize_t ErrorCounter;
+typedef int FileDescr;
 // size_t should be used for size/capacity
 // Index for array/loop indexing
 // Counter for variables that used to count

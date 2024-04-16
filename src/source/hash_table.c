@@ -12,6 +12,7 @@
 
 // static ---------------------------------------------------------------------
 
+__attribute__((always_inline))
 LList* Accessbucket(const HashTable* hash_table, HashValue hash_value);
 
 // global ---------------------------------------------------------------------
@@ -50,20 +51,20 @@ void HashTable_Dtor(HashTable* hash_table) {
 void HashTable_Dump(const HashTable* hash_table) {
     ASSERT(hash_table != NULL);
 
-// #if defined(DEBUG_ON)
-//     fprintf(stderr, "Hash Table:\n");
-//     fprintf(stderr, "   number of buckets: %lu\n", hash_table->n_buckets);
-//     fprintf(stderr, "   backets: %p\n", hash_table->buckets);
-//     for (Index i = 0; i < hash_table->n_buckets; i++) {
-//         if (hash_table->buckets[i].is_valid) {
-//             fprintf(stderr, "       [%lu] valid %lu\n", i,
-//                     hash_table->buckets[i].n_items);
-//         } else {
-//             fprintf(stderr, "       [%lu] invalid %lu\n", i,
-//                     hash_table->buckets[i].n_items);
-//         }
-//     }
-// #endif  // DEBUG_ON
+#if defined(DEBUG_ON)
+    fprintf(stderr, "Hash Table:\n");
+    fprintf(stderr, "   number of buckets: %lu\n", hash_table->n_buckets);
+    fprintf(stderr, "   backets: %p\n", hash_table->buckets);
+    for (Index i = 0; i < hash_table->n_buckets; i++) {
+        if (hash_table->buckets[i].is_valid) {
+            fprintf(stderr, "       [%lu] valid %lu\n", i,
+                    hash_table->buckets[i].n_items);
+        } else {
+            fprintf(stderr, "       [%lu] invalid %lu\n", i,
+                    hash_table->buckets[i].n_items);
+        }
+    }
+#endif  // DEBUG_ON
 
     for (Index i = 0; i < hash_table->n_buckets; i++) {
         fprintf(stderr, "%lu\n", hash_table->buckets[i].n_items);
@@ -133,8 +134,9 @@ ErrorCounter HashTable_LookUpByKey(const HashTable* hash_table,
     return LList_LookUp(Accessbucket(hash_table, hash_key), key);
 }
 
-// static ---------------------------------------------------------------------
+// static ----------------------------------------------------------------------
 
+__attribute__((always_inline))
 LList* Accessbucket(const HashTable* hash_table, HashValue hash_value) {
     ASSERT(hash_table != NULL);
 

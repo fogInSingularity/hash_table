@@ -13,3 +13,25 @@ release:
 
 clean:
 	rm src/build/* src/lib_code/build/*
+
+EXE = hash_table
+EXE_ARGS = bible.txt parsed
+EXE_LOG = 2>log
+
+#analyze:
+#	@clang-tidy $(SOURCES) -checks=performance-*
+
+graph:
+	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/norm measures/ch_sum measures/crc measures/rol measures/mur
+
+perf_rec:
+	@sudo perf record --call-graph dwarf ./$(EXE) $(EXE_ARGS) $(EXE_LOG)
+
+hotspot:
+	@sudo hotspot perf.data
+
+val:
+	@valgrind --tool=callgrind --dump-instr=yes ./$(EXE) $(EXE_ARGS)
+
+kch:
+	@kcachegrind

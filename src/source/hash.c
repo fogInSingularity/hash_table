@@ -2,20 +2,20 @@
 
 #include <stdint.h>
 #include <memory.h>
-#include <assert.h>
+#include <nmmintrin.h>
 
 #include "debug.h"
 #include "my_assert.h"
 #include "hash_table_cfg.h"
 #include "my_typedefs.h"
+#include "opt.h"
+
 
 // static ---------------------------------------------------------------------
 
 static const size_t kBitsInByte = 8;
 
 static uint32_t HashScramble(uint32_t k);
-// __attribute__((unused))
-// static HashValue RorN(HashValue hash_value, size_t n);
 static HashValue Ror(HashValue hash_value);
 static HashValue Rol(HashValue hash_value);
 
@@ -34,13 +34,17 @@ static HashValue HashRor(const char* key, size_t len);
 __attribute__((unused))
 static HashValue HashRol(const char* key, size_t len);
 __attribute__((unused))
-static HashValue HashBased(const char* key, size_t len);
+HOT static HashValue HashMur(const char* key, size_t len);
+__attribute__((unused))
+static HashValue HashCRC(const char* key, size_t len);
 
 // global ---------------------------------------------------------------------
 
 __attribute__((noinline))
-HashValue Hash(const char* key, size_t len) {
-    ASSERT(key != NULL);
+HOT HashValue Hash(const char* key, size_t len) {
+    ASSERT(key != NULL); $
+
+    // PRINT_POINTER(key);
 
     #if defined (HASH_ALWAYS_ZERO)
         return HashAlwaysZero(key, len);
@@ -52,12 +56,14 @@ HashValue Hash(const char* key, size_t len) {
         return HashCharSum(key, len);
     #elif defined (HASH_NORM)
         return HashNorm(key, len);
-    #elif defined (HASH_ROR)
-        return HashRor(key, len);
+    // #elif defined (HASH_ROR)
+    //     return HashRor(key, len);
     #elif defined (HASH_ROL)
         return HashRol(key, len);
-    #elif defined (HASH_BASED)
-        return HashBased(key, len);
+    #elif defined (HASH_MUR)
+        return HashMur(key, len);
+    #elif defined (HASH_CRC)
+        return HashCRC(key, len);
     #else 
         static_assert(0, "! No hash functions were defined");
     #endif
@@ -134,12 +140,13 @@ static HashValue HashRol(const char* key, size_t len) {
 }
 
 __attribute__((unused))
-static HashValue HashBased(const char* key, size_t len) {
+static HashValue HashMur(const char* key, size_t len) {
     ASSERT(key != NULL);
 
     const uint8_t* ukey = (const uint8_t*)key;
     
-    uint32_t h = 0;
+    uint32_t h = 0xbebeb0ba;
+    // uint32_t h = 0;
     uint32_t k = 0;
 
     for (size_t i = len >> 2; i; i--) {
@@ -170,6 +177,38 @@ static HashValue HashBased(const char* key, size_t len) {
     return h;
 }
 
+__attribute__((unused))
+HOT static HashValue HashCRC(const char* key, size_t len) {
+    ASSERT(key != NULL);
+
+    uint64_t crc32 = 0xbebeb0ba;
+
+    if (len == 0) UNLIKELY { return crc32; }
+
+    Counter nFullOps = len >> 3;      // колво шагов по 8
+    Counter trailer = len & 0b111UL;  // оставшиеся 7 байт
+
+    for (Index i = 0; i < nFullOps; i++) {
+        crc32 = _mm_crc32_u64(crc32, *(uint64_t*)key);
+        key += sizeof(uint64_t);
+    }
+
+    if (trailer % 0b100UL) {
+        crc32 = _mm_crc32_u32(crc32, *(uint32_t*)key);
+    }
+
+    if (trailer % 0b010UL) {
+        crc32 = _mm_crc32_u16(crc32, *(uint16_t*)key);
+    }
+
+    if (trailer % 0b001UL) {
+        crc32 = _mm_crc32_u8(crc32, *(uint8_t*)key);
+    }
+
+    return crc32;
+}
+
+__attribute__((always_inline))
 static inline uint32_t HashScramble(uint32_t k) {
     k *= 0xcc9e2d51;
     k = (k << 15) | (k >> 17);
@@ -177,13 +216,6 @@ static inline uint32_t HashScramble(uint32_t k) {
 
     return k;
 }
-
-// __attribute__((unused))
-// static HashValue RorN(HashValue hash_value, size_t n) {
-//     n = n % sizeof(hash_value) * kBitsInByte;
-
-//     return (hash_value >> n) | (hash_value << (sizeof(hash_value) * kBitsInByte - n));
-// }
 
 static HashValue Ror(HashValue hash_value) {
     return (hash_value >> 1) | (hash_value << (sizeof(hash_value) * kBitsInByte - 1));

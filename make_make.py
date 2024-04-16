@@ -5,18 +5,18 @@ default_flags = """
 # 
 # ------------------------------------------
 EXE = hash_table
-EXE_ARGS = bible.txt 
+EXE_ARGS = bible.txt parsed
 EXE_LOG = 2>log
 
 DEBUG_CC = gcc
 RELEASE_CC = clang
 ASM = nasm
 
-WARNINGS = -Wall -Wextra -Werror
+WARNINGS = -Wall -Wextra
 
 INCLUDE = -Isrc/include/ -Isrc/lib_code/include/
 
-FLAGS = -std=c2x -fstack-protector-strong -fcheck-new -fstrict-overflow $(WARNINGS)
+FLAGS = -std=c2x -fstack-protector-strong -fcheck-new -fstrict-overflow $(WARNINGS) 
 
 ASAN_FLAGS = -fsanitize=address,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
 
@@ -25,10 +25,10 @@ MARCH = -march=znver1 -mavx2
 LIBRARY = -lm # for clang
 
 DEBUG_FLAGS = $(FLAGS) $(ASAN_FLAGS) -Og $(MARCH) -ggdb -D_FORTIFY_SOURCE=2
-RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -flto -DNDEBUG -fno-omit-frame-pointer -g
+RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -DNDEBUG -fno-omit-frame-pointer -g -flto
 
 LINK_FLAGS_DEBUG = $(LIBRARY) $(ASAN_FLAGS) -ggdb 
-LINK_FLAGS_RELEASE = $(LIBRARY) -g
+LINK_FLAGS_RELEASE = $(LIBRARY) -g -flto
 
 ASM_FLAGS = -Werror -g -f elf64
 
@@ -42,8 +42,8 @@ ASM_FLAGS = -Werror -g -f elf64
 # find . -type f -name "*.<file_ext>" -printf "./build/%f\\n" | sort
 """
 
-c_files = "./src/source/main.c ./src/source/hash_table.c ./src/source/parse_file.c ./src/source/hash.c ./src/lib_code/source/utils.c ./src/lib_code/source/my_assert.c ./src/lib_code/source/bin_file.c ./src/lib_code/source/darray.c ./src/lib_code/source/llist.c ./src/lib_code/source/recalloc.c"
-c_objects = "./src/build/main.o ./src/build/hash_table.o ./src/build/parse_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o"
+c_files = "./src/source/main.c ./src/source/hash_table.c ./src/source/load_file.c ./src/source/hash.c ./src/lib_code/source/utils.c ./src/lib_code/source/my_assert.c ./src/lib_code/source/bin_file.c ./src/lib_code/source/darray.c ./src/lib_code/source/llist.c ./src/lib_code/source/recalloc.c"
+c_objects = "./src/build/main.o ./src/build/hash_table.o ./src/build/load_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o"
 
 asm_sources = "./src/lib_code/source/faster_strncmp.asm"
 asm_objects = "./src/lib_code/build/faster_strncmp.o"
@@ -118,20 +118,24 @@ for i in range(c_no_files):
 # aditional utils: -------------------------------------------------------------
 
 utils = """
-analyze:
-	@clang-tidy $(SOURCES) -checks=performance-*
+EXE = hash_table
+EXE_ARGS = bible.txt parsed
+EXE_LOG = 2>log
+
+#analyze:
+#	@clang-tidy $(SOURCES) -checks=performance-*
 
 graph:
-	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/ch_sum measures/norm  measures/ror measures/rol measures/based
+	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/norm measures/ch_sum measures/ror measures/rol measures/based
 
 perf_rec:
-	@sudo perf record --call-graph dwarf $(EXE) $(EXE_ARGS) $(EXE_LOG)
+	@sudo perf record --call-graph dwarf ./$(EXE) $(EXE_ARGS) $(EXE_LOG)
 
 hotspot:
 	@sudo hotspot perf.data
 
 val:
-	@valgrind --tool=callgrind --dump-instr=yes $(EXE) $(EXE_ARGS)
+	@valgrind --tool=callgrind --dump-instr=yes ./$(EXE) $(EXE_ARGS)
 
 kch:
 	@kcachegrind
@@ -161,7 +165,7 @@ all:
                 
 release:
 \tmake -f release_make
-""" + clean_target)
+""" + clean_target + '\n' + utils)
 # make_file.write(default_flags + sep + all_target + release_target + sep + c_obj_debug + asm_obj_debug + sep + c_obj_release + asm_obj_release + sep + utils)
 make_file_debug.write(default_flags + sep + all_target + sep + c_obj_debug + asm_obj_debug)
 make_file_release.write(default_flags + sep + release_target + sep + c_obj_release + asm_obj_release)

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #include "bin_file.h"
 #include "debug.h"
@@ -24,7 +25,7 @@ FatPointer ParseToWords(BinData* file_data);
 __attribute__((noinline))
 FatPointer ParseFile(const int argc, const char** argv, BinData* ret_bin_data) {
     ASSERT(argv != NULL);
-    if (argc < 2) { return (FatPointer){NULL, 0}; }
+    if (argc < 3) { return (FatPointer){NULL, 0}; }
     
     FILE* file = fopen(argv[1], "rb");
     if (file == NULL) { return (FatPointer){NULL, 0}; }
@@ -100,6 +101,7 @@ FatPointer ParseToWords(BinData* file_data) {
         return (FatPointer){NULL, 0};
     }
      
+
     Index iter_arr = 0;
     iter_str = file_data->buf;
     while (iter_str < file_data->buf + file_data->buf_size) {
@@ -110,6 +112,9 @@ FatPointer ParseToWords(BinData* file_data) {
         }
 
         parsed_words[iter_arr].len = (size_t)(iter_str - parsed_words[iter_arr].str);
+        // PRINT_POINTER(parsed_words[iter_arr].str);
+        parsed_words[iter_arr].str = (const char*)(parsed_words[iter_arr].str - file_data->buf);
+        // PRINT_POINTER(parsed_words[iter_arr].str);
         iter_arr++;
 
         iter_str = SkipSpaces(iter_str);

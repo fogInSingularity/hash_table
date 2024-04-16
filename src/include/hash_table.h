@@ -23,6 +23,7 @@ HashTableError HashTable_Ctor(HashTable* hash_table);
 void HashTable_Dtor(HashTable* hash_table);
 void HashTable_Dump(const HashTable* hash_table);
 
+__attribute__((noinline))
 HashTableError HashTable_InsertByKey(HashTable* hash_table, StringView* key);
 HashTableError HashTable_RemoveByKey(HashTable* hash_table, StringView* key);
 ErrorCounter HashTable_LookUpByKey(const HashTable* hash_table,

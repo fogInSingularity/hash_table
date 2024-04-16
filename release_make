@@ -5,18 +5,18 @@
 # 
 # ------------------------------------------
 EXE = hash_table
-EXE_ARGS = bible.txt 
+EXE_ARGS = bible.txt parsed
 EXE_LOG = 2>log
 
 DEBUG_CC = gcc
 RELEASE_CC = clang
 ASM = nasm
 
-WARNINGS = -Wall -Wextra -Werror
+WARNINGS = -Wall -Wextra
 
 INCLUDE = -Isrc/include/ -Isrc/lib_code/include/
 
-FLAGS = -std=c2x -fstack-protector-strong -fcheck-new -fstrict-overflow $(WARNINGS)
+FLAGS = -std=c2x -fstack-protector-strong -fcheck-new -fstrict-overflow $(WARNINGS) 
 
 ASAN_FLAGS = -fsanitize=address,bool,bounds,enum,float-cast-overflow,float-divide-by-zero,integer-divide-by-zero,leak,nonnull-attribute,null,object-size,return,returns-nonnull-attribute,shift,signed-integer-overflow,undefined,unreachable,vla-bound,vptr
 
@@ -25,10 +25,10 @@ MARCH = -march=znver1 -mavx2
 LIBRARY = -lm # for clang
 
 DEBUG_FLAGS = $(FLAGS) $(ASAN_FLAGS) -Og $(MARCH) -ggdb -D_FORTIFY_SOURCE=2
-RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -flto -DNDEBUG -fno-omit-frame-pointer -g
+RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -DNDEBUG -fno-omit-frame-pointer -g -flto
 
 LINK_FLAGS_DEBUG = $(LIBRARY) $(ASAN_FLAGS) -ggdb 
-LINK_FLAGS_RELEASE = $(LIBRARY) -g
+LINK_FLAGS_RELEASE = $(LIBRARY) -g -flto
 
 ASM_FLAGS = -Werror -g -f elf64
 
@@ -42,8 +42,8 @@ ASM_FLAGS = -Werror -g -f elf64
 # find . -type f -name "*.<file_ext>" -printf "./build/%f\n" | sort
 # ------------------------------------------------------------------------------
 
-all: ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_table.o ./src/build/parse_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o
-	@$(RELEASE_CC) ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_table.o ./src/build/parse_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o -o $(EXE) $(LINK_FLAGS_RELEASE)
+all: ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_table.o ./src/build/load_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o
+	@$(RELEASE_CC) ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_table.o ./src/build/load_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o -o $(EXE) $(LINK_FLAGS_RELEASE)
 	@rm src/build/* src/lib_code/build/*
 
 # ------------------------------------------------------------------------------
@@ -53,7 +53,7 @@ all: ./src/lib_code/build/faster_strncmp.o ./src/build/main.o ./src/build/hash_t
 ./src/build/hash_table.o: ./src/source/hash_table.c
 	@$(RELEASE_CC) -c $^ $(RELEASE_FLAGS) $(INCLUDE) -o $@
 
-./src/build/parse_file.o: ./src/source/parse_file.c
+./src/build/load_file.o: ./src/source/load_file.c
 	@$(RELEASE_CC) -c $^ $(RELEASE_FLAGS) $(INCLUDE) -o $@
 
 ./src/build/hash.o: ./src/source/hash.c
