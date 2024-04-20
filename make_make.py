@@ -5,7 +5,7 @@ default_flags = """
 # 
 # ------------------------------------------
 EXE = hash_table
-EXE_ARGS = bible.txt parsed
+EXE_ARGS = bible parsed
 EXE_LOG = 2>log
 
 DEBUG_CC = gcc
@@ -24,11 +24,11 @@ O_LEVEL = -O2
 MARCH = -march=znver1 -mavx2
 LIBRARY = -lm # for clang
 
-DEBUG_FLAGS = $(FLAGS) $(ASAN_FLAGS) -Og $(MARCH) -ggdb -D_FORTIFY_SOURCE=2
+DEBUG_FLAGS = $(FLAGS) $(ASAN_FLAGS) -Og $(MARCH) -DDEBUG -ggdb -D_FORTIFY_SOURCE=2
 RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -DNDEBUG -fno-omit-frame-pointer -g -flto
 
-LINK_FLAGS_DEBUG = $(LIBRARY) $(ASAN_FLAGS) -ggdb 
-LINK_FLAGS_RELEASE = $(LIBRARY) -g -flto
+LINK_FLAGS_DEBUG = $(LIBRARY) $(ASAN_FLAGS) -DDEBUG -ggdb 
+LINK_FLAGS_RELEASE = $(LIBRARY) -DNDEBUG -g -flto
 
 ASM_FLAGS = -Werror -g -f elf64
 
@@ -42,11 +42,11 @@ ASM_FLAGS = -Werror -g -f elf64
 # find . -type f -name "*.<file_ext>" -printf "./build/%f\\n" | sort
 """
 
-c_files = "./src/source/main.c ./src/source/hash_table.c ./src/source/load_file.c ./src/source/hash.c ./src/lib_code/source/utils.c ./src/lib_code/source/my_assert.c ./src/lib_code/source/bin_file.c ./src/lib_code/source/darray.c ./src/lib_code/source/llist.c ./src/lib_code/source/recalloc.c"
-c_objects = "./src/build/main.o ./src/build/hash_table.o ./src/build/load_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o"
+c_files = "./src/source/main.c ./src/source/hash_table.c ./src/source/load_file.c ./src/source/hash.c ./src/lib_code/source/utils.c ./src/lib_code/source/my_assert.c ./src/lib_code/source/bin_file.c ./src/lib_code/source/darray.c ./src/lib_code/source/llist.c ./src/lib_code/source/recalloc.c ./src/lib_code/source/faster_strcmp.c ./src/lib_code/source/file_wraper.c"
+c_objects = "./src/build/main.o ./src/build/hash_table.o ./src/build/load_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o ./src/lib_code/build/faster_strcmp.o ./src/lib_code/build/file_wraper.o"
 
-asm_sources = "./src/lib_code/source/faster_strncmp.asm"
-asm_objects = "./src/lib_code/build/faster_strncmp.o"
+asm_sources = ""
+asm_objects = ""
 
 # all target: ------------------------------------------------------------------
 clean_dirs = "rm src/build/* src/lib_code/build/*"
@@ -126,7 +126,7 @@ EXE_LOG = 2>log
 #	@clang-tidy $(SOURCES) -checks=performance-*
 
 graph:
-	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/norm measures/ch_sum measures/ror measures/rol measures/based
+	@python graph.py measures/alw_zero measures/alw_fchr measures/len measures/norm measures/ch_sum measures/crc measures/rol measures/mur
 
 perf_rec:
 	@sudo perf record --call-graph dwarf ./$(EXE) $(EXE_ARGS) $(EXE_LOG)
