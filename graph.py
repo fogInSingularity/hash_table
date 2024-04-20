@@ -6,6 +6,12 @@ number_of_nuckets = 2003
 bar_width = 1.5
 max_hight = 50
 
+def find_destr(data):
+    length = len(data)
+    avg = sum(data) / length
+    destr = sum([(data[i] - avg)**2 for i in range(length)]) / length
+    return destr
+
 filename = sys.argv[1]
 with open(filename, 'r') as f:
         lines_al_zero = f.readlines()
@@ -36,7 +42,7 @@ with open(filename, 'r') as f:
 
 filename = sys.argv[8]
 with open(filename, 'r') as f:
-        lines_based = f.readlines()
+        lines_mur = f.readlines()
 
 # -----------------------------------
 
@@ -68,9 +74,9 @@ data_rol = []
 for line in lines_rol:
         data_rol.append(int(line))
 
-data_based = []
-for line in lines_based:
-        data_based.append(int(line))
+data_mur= []
+for line in lines_mur:
+        data_mur.append(int(line))
 
 fig, axs = plt.subplots(2, 4)
 
@@ -99,9 +105,17 @@ axs[1, 1].set_ylim(0, max_hight)
 axs[1, 2].bar([i for i in range(number_of_nuckets)], data_rol, width=bar_width)
 axs[1, 2].set_title('rol')
 
-axs[1, 3].bar([i for i in range(number_of_nuckets)], data_based, width=bar_width)
+axs[1, 3].bar([i for i in range(number_of_nuckets)], data_mur, width=bar_width)
 axs[1, 3].set_title('mur')
 
 plt.tight_layout()
-
 plt.show()
+
+print("always zero: ", find_destr(data_al_zero))
+print("always first char: ", find_destr(data_alw_fchr))
+print("len: ", find_destr(data_len))
+print("normalized: ", find_destr(data_norm))
+print("sum of chars: ", find_destr(data_sum_chr))
+print("crc: ", find_destr(data_crc))
+print("rol: ", find_destr(data_rol))
+print("murmur: ", find_destr(data_mur))
