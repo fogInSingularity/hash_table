@@ -14,19 +14,31 @@
             #define UNLIKELY
         #endif
         #define HOT __attribute__((hot))
+        #define NOINLINE __attribute__((noinline))
+        #define INLINE __attribute__((always_inline))
+        #define ALIGN(n) __attribute__((aligned(n)))
     #elif defined (__GNUC__)
         #define LIKELY 
         #define UNLIKELY 
         #define HOT __attribute__((hot))
+        #define INLINE __attribute__((always_inline))
+        #define NOINLINE __attribute__((noinline))
+        #define ALIGN(n) __attribute__((aligned(n)))
     #else
         #define LIKELY 
         #define UNLIKELY 
         #define HOT
+        #define INLINE
+        #define NOINLINE
+        #define ALIGN(n)
     #endif
 #else
     #define LIKELY 
     #define UNLIKELY 
     #define HOT
+    #define INLINE
+    #define NOINLINE
+    #define ALIGN
 #endif // OPT_ON
 
 #endif // OPT_H_

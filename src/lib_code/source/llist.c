@@ -5,28 +5,27 @@
 #include <string.h>
 
 #include "debug.h"
-#include "hash_table_elem.h"
+#include "llist_config.h"
+#include "llist_elem.h"
 #include "my_assert.h"
-#include "my_typedefs.h"
-#include "string_view.h"
-#include "utils.h"
-#include "faster_strncmp.h"
+#include "faster_strcmp.h"
 
 #include "opt.h"
 
-// static ---------------------------------------------------------------------
+// static ----------------------------------------------------------------------
 
 typedef struct LLNode {
-    HashTElem elem;
+    LListElem elem;
     struct LLNode* next;
     struct LLNode* prev;
 } LLNode;
 
-#define ERROR_M(error_m) fputs(RED BOLD "error: " RESET error_m "\n", stdout);
+// #define ERROR_M(error_m) fputs(RED BOLD "error: " RESET error_m "\n", stdout);
 
-HOT static bool CompareKeysEqual(StringView* key1, StringView* key2);
+HOT static bool CompareKeysEqual(const char word_key1[kWordMaxLen], 
+                                 const char word_key2[kWordMaxLen]);
 
-// global ---------------------------------------------------------------------
+// global ----------------------------------------------------------------------
 
 LListError LList_Ctor(LList* list) {
     ASSERT(list != NULL);
@@ -81,34 +80,34 @@ void LList_Dtor(LList* list) {
     list->n_items = 0;
 }
 
-__attribute__((noinline))
-LListError LList_Insert(LList* list, StringView* key) {
+NOINLINE
+LListError LList_Insert(LList* list, const char word_key[kWordMaxLen]) {
     ASSERT(list != NULL);
-    ASSERT(key != NULL);
 
-    if (!list->is_valid) UNLIKELY {
+#if defined (LLIST_SAFE_CHECKS)
+    if (list->is_valid) UNLIKELY {
         return kLList_InvalidLList; $
     }
+#endif // LLIST_SAFE_CHECKS
 
     LLNode* iter_node = list->head->next;
     bool is_keys_equal = false;
     while (!is_keys_equal && iter_node != list->tail) {
-        is_keys_equal = CompareKeysEqual(&iter_node->elem.string, key);
+        is_keys_equal = CompareKeysEqual(iter_node->elem.word_key, word_key);
         if (!is_keys_equal) {
             iter_node = iter_node->next;
         }
     }
 
-    if (is_keys_equal) LIKELY { //optim
+    if (is_keys_equal) LIKELY {
         iter_node->elem.n_copies++;
     } else {
-        LLNode* new_node = (LLNode*)calloc(1, sizeof(LLNode));
-        if (new_node == NULL) UNLIKELY {
-            return kLList_BadInsert;
-        }
+        LLNode* new_node = (LLNode*)aligned_alloc(32, 64); //FIXME
+        if (new_node == NULL) UNLIKELY { return kLList_BadInsert; }
+        memset(new_node, 0, sizeof(LLNode));
 
         new_node->elem.n_copies = 1;
-        new_node->elem.string = *key;
+        strncpy(new_node->elem.word_key, word_key, kWordMaxLen);
 
         new_node->next = list->tail;
         new_node->prev = list->tail->prev;
@@ -121,18 +120,19 @@ LListError LList_Insert(LList* list, StringView* key) {
     return kLList_Success;
 }
 
-LListError LList_Remove(LList* list, StringView* key) {
+LListError LList_Remove(LList* list, const char word_key[kWordMaxLen]) {
     ASSERT(list != NULL);
-    ASSERT(key != NULL);
 
-    if (!list->is_valid) {
+#if defined (LLIST_SAFE_CHECKS)
+    if (!list->is_valid) UNLIKELY {
         return kLList_InvalidLList; $
     }
+#endif // LLIST_SAFE_CHECKS
 
     LLNode* iter_node = list->head->next;
     bool is_keys_equal = false;
     while (iter_node != list->tail && !is_keys_equal) {
-        is_keys_equal = CompareKeysEqual(&iter_node->elem.string, key);
+        is_keys_equal = CompareKeysEqual(iter_node->elem.word_key, word_key);
         if (!is_keys_equal) {
             iter_node = iter_node->next;
         }
@@ -152,52 +152,36 @@ LListError LList_Remove(LList* list, StringView* key) {
     return kLList_Success;
 }
 
-ErrorCounter LList_LookUp(LList* list, StringView* key) {
+Counter LList_LookUp(LList* list, const char word_key[kWordMaxLen]) {
     ASSERT(list != NULL);
-    ASSERT(key != NULL);
 
+#if defined (LLIST_SAFE_CHECKS)
     if (!list->is_valid) {
-        return -1; $
+        return kLList_LookUpErr; $
     }
+#endif // LLIST_SAFE_CHECKS
 
     LLNode* iter_node = list->head->next;
     bool is_keys_equal = false;
     while (iter_node != list->tail && !is_keys_equal) {
-        is_keys_equal = CompareKeysEqual(&iter_node->elem.string, key);
+        is_keys_equal = CompareKeysEqual(iter_node->elem.word_key, word_key);
         if (!is_keys_equal) {
             iter_node = iter_node->next;
         }
     }
 
     return is_keys_equal 
-           ? (ErrorCounter)iter_node->elem.n_copies 
+           ? iter_node->elem.n_copies 
            : 0;
 }
 
-// static ---------------------------------------------------------------------
+// static ----------------------------------------------------------------------
 
-HOT static bool CompareKeysEqual(StringView* key1, StringView* key2) {
-    ASSERT(key1 != NULL);
-    ASSERT(key2 != NULL);
+NOINLINE
+static bool CompareKeysEqual(const char word_key1[kWordMaxLen], 
+                             const char word_key2[kWordMaxLen]) {
+    // int first_check = strcmp(word_key1, word_key2);
+    int first_check = FasterStrcmp(word_key1, word_key2);
 
-    size_t max_len = MAX(key1->len, key2->len);
-    size_t min_len = MIN(key1->len, key2->len);
-
-#if defined (OPT_ON)
-    int first_check = FasterStrncmp(key1->str, key2->str, min_len);
-#else
-    int first_check = strncmp(key1->str, key2->str, min_len);
-#endif // OPT_ON
-    if (first_check != 0) {
-        return false;
-    }
-
-    const char* iter = key1->len > key2->len ? key1->str : key2->str;
-    for (Index i = min_len; i < max_len; i++) {
-        if (iter[i] != '\0') {
-            return false;
-        }
-    }
-
-    return true;
+    return first_check == 0 ? true : false;
 }

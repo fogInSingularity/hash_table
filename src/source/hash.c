@@ -10,12 +10,15 @@
 #include "my_typedefs.h"
 #include "opt.h"
 
+// static ----------------------------------------------------------------------
 
-// static ---------------------------------------------------------------------
+#if __CHAR_BIT__ != 8
+#error "what architecture is that?"
+#else
+static const size_t kBitsInByte = __CHAR_BIT__;
+#endif
 
-static const size_t kBitsInByte = 8;
-
-static uint32_t HashScramble(uint32_t k);
+INLINE static uint32_t HashScramble(uint32_t k);
 static HashValue Ror(HashValue hash_value);
 static HashValue Rol(HashValue hash_value);
 
@@ -38,10 +41,10 @@ HOT static HashValue HashMur(const char* key, size_t len);
 __attribute__((unused))
 static HashValue HashCRC(const char* key, size_t len);
 
-// global ---------------------------------------------------------------------
+// global ----------------------------------------------------------------------
 
-__attribute__((noinline))
-HOT HashValue Hash(const char* key, size_t len) {
+// __attribute__((noinline))
+NOINLINE HOT HashValue Hash(const char* key, size_t len) {
     ASSERT(key != NULL); $
 
     // PRINT_POINTER(key);
@@ -69,7 +72,7 @@ HOT HashValue Hash(const char* key, size_t len) {
     #endif
 }
 
-// static ---------------------------------------------------------------------
+// static ----------------------------------------------------------------------
 
 __attribute__((unused))
 static HashValue HashAlwaysZero(const char* key, size_t len) {
@@ -146,7 +149,6 @@ static HashValue HashMur(const char* key, size_t len) {
     const uint8_t* ukey = (const uint8_t*)key;
     
     uint32_t h = 0xbebeb0ba;
-    // uint32_t h = 0;
     uint32_t k = 0;
 
     for (size_t i = len >> 2; i; i--) {
@@ -185,8 +187,8 @@ HOT static HashValue HashCRC(const char* key, size_t len) {
 
     if (len == 0) UNLIKELY { return crc32; }
 
-    Counter nFullOps = len >> 3;      // колво шагов по 8
-    Counter trailer = len & 0b111UL;  // оставшиеся 7 байт
+    Counter nFullOps = len >> 3;      // 8-wide steps
+    Counter trailer = len & 0b111UL;  // remaining 7 steps
 
     for (Index i = 0; i < nFullOps; i++) {
         crc32 = _mm_crc32_u64(crc32, *(uint64_t*)key);
@@ -208,8 +210,7 @@ HOT static HashValue HashCRC(const char* key, size_t len) {
     return crc32;
 }
 
-__attribute__((always_inline))
-static inline uint32_t HashScramble(uint32_t k) {
+INLINE static inline uint32_t HashScramble(uint32_t k) {
     k *= 0xcc9e2d51;
     k = (k << 15) | (k >> 17);
     k *= 0x1b873593;
@@ -218,9 +219,11 @@ static inline uint32_t HashScramble(uint32_t k) {
 }
 
 static HashValue Ror(HashValue hash_value) {
-    return (hash_value >> 1) | (hash_value << (sizeof(hash_value) * kBitsInByte - 1));
+    return (hash_value >> 1) 
+           | (hash_value << (sizeof(hash_value) * kBitsInByte - 1));
 }
 
 static HashValue Rol(HashValue hash_value) {
-    return (hash_value << 1) | (hash_value >> (sizeof(hash_value) * kBitsInByte - 1));
+    return (hash_value << 1) 
+           | (hash_value >> (sizeof(hash_value) * kBitsInByte - 1));
 }

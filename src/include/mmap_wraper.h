@@ -1,12 +1,12 @@
 #ifndef MMAP_WRAPER_H_
 #define MMAP_WRAPER_H_
 
-#if defined(_WIN32)
-#error "Unable to use mmap"
-#else
+#if defined(__linux__)
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#endif
+#else
+#error "Unable to use mmap"
+#endif // __linux__
 
 #endif // MMAP_WRAPER_H_

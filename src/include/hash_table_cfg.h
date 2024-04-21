@@ -1,7 +1,8 @@
 #ifndef HASH_TABLE_CFG_H_
 #define HASH_TABLE_CFG_H_
 
-static const unsigned long long kNumberOfBuckets = 2003;
+// #define kNumberOfBuckets 2003ull
+static const unsigned long long kNumberOfBuckets = 2003ull;
 
 // #define HASH_ALWAYS_ZERO
 // #define HASH_FIRST_CHAR
