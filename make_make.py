@@ -25,7 +25,7 @@ MARCH = -march=znver1 -mavx2
 LIBRARY = -lm # for clang
 
 DEBUG_FLAGS = $(FLAGS) $(ASAN_FLAGS) -Og $(MARCH) -DDEBUG -ggdb -D_FORTIFY_SOURCE=2
-RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -DNDEBUG -fno-omit-frame-pointer -g -flto
+RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -DNDEBUG -fomit-frame-pointer -g -flto
 
 LINK_FLAGS_DEBUG = $(LIBRARY) $(ASAN_FLAGS) -DDEBUG -ggdb 
 LINK_FLAGS_RELEASE = $(LIBRARY) -DNDEBUG -g -flto
@@ -119,7 +119,7 @@ for i in range(c_no_files):
 
 utils = """
 EXE = hash_table
-EXE_ARGS = bible.txt parsed
+EXE_ARGS = bible parsed
 EXE_LOG = 2>log
 
 #analyze:
