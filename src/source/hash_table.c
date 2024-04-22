@@ -16,8 +16,8 @@
 
 // static ----------------------------------------------------------------------
 
-INLINE
-LList* Accessbucket(const HashTable* hash_table, HashValue hash_value);
+// NOINLINE
+LList* AccessBucket(const HashTable* hash_table, HashValue hash_value);
 
 // global ----------------------------------------------------------------------
 
@@ -87,7 +87,7 @@ HashTableError HashTable_InsertByKey(HashTable* hash_table,
     char word_key[kWordMaxLen] ALIGN(kWordMaxLen) = {0};
     memcpy(word_key, key->str, key->len);
 
-    llist_error = LList_Insert(Accessbucket(hash_table, hash_key), word_key);
+    llist_error = LList_Insert(AccessBucket(hash_table, hash_key), word_key);
 
     switch (llist_error) {
         case kLList_Success:
@@ -115,7 +115,7 @@ HashTableError HashTable_RemoveByKey(HashTable* hash_table,
     char word_key[kWordMaxLen] ALIGN(kWordMaxLen) = {0};
     memcpy(word_key, key->str, key->len);
 
-    llist_error = LList_Remove(Accessbucket(hash_table, hash_key), word_key);
+    llist_error = LList_Remove(AccessBucket(hash_table, hash_key), word_key);
 
     switch (llist_error) {
         case kLList_Success:
@@ -143,15 +143,15 @@ Counter HashTable_LookUpByKey(const HashTable* hash_table,
     char word_key[kWordMaxLen] ALIGN(kWordMaxLen) = {0};
     memcpy(word_key, key->str, key->len);
 
-    return LList_LookUp(Accessbucket(hash_table, hash_key), word_key);
+    return LList_LookUp(AccessBucket(hash_table, hash_key), word_key);
 }
 
 // static ----------------------------------------------------------------------
 
 NOINLINE
-LList* Accessbucket(const HashTable* hash_table, HashValue hash_value) {
+LList* AccessBucket(const HashTable* hash_table, HashValue hash_value) {
     ASSERT(hash_table != NULL);
 
-    // return hash_table->buckets + (hash_value % kNumberOfBuckets);
-    return hash_table->buckets + (hash_value % hash_table->n_buckets);
+    return hash_table->buckets + (hash_value % kNumberOfBuckets);
+    // return hash_table->buckets + (hash_value % hash_table->n_buckets);
 }

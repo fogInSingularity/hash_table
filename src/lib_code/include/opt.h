@@ -41,4 +41,7 @@
     #define ALIGN
 #endif // OPT_ON
 
+#undef NOINLINE
+#define NOINLINE
+
 #endif // OPT_H_
