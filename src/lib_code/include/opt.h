@@ -1,7 +1,9 @@
 #ifndef OPT_H_
 #define OPT_H_
 
+#ifndef DEBUG
 #define OPT_ON
+#endif // DEBUG
 
 #if defined (OPT_ON)
     // check for c2x clang
@@ -38,7 +40,7 @@
     #define HOT
     #define INLINE
     #define NOINLINE
-    #define ALIGN
+    #define ALIGN(n)
 #endif // OPT_ON
 
 #undef NOINLINE

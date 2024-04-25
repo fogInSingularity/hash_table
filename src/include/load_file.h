@@ -6,7 +6,6 @@
 
 FatPointer LoadFile(const int argc, 
                     const char** argv, 
-                    BinData* file_data, 
-                    int* mapped_fd);
+                    BinData* file_data);
 
 #endif // LOAD_FILE_H_

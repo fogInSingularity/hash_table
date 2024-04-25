@@ -29,12 +29,12 @@ void HashTable_Dump(const HashTable* hash_table);
 
 NOINLINE
 HashTableError HashTable_InsertByKey(HashTable* hash_table, 
-                                     const StringView* key);
+                                    const StringView key);
 NOINLINE
 HashTableError HashTable_RemoveByKey(HashTable* hash_table, 
-                                     const StringView* key);
+                                    const StringView key);
 NOINLINE
 Counter HashTable_LookUpByKey(const HashTable* hash_table,
-                              const StringView* key);
+                              const StringView key);
 
 #endif  // HASH_TABLE_H_

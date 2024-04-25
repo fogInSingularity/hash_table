@@ -5,6 +5,7 @@
 #include <nmmintrin.h>
 
 #include "debug.h"
+#include "hash_asm.h"
 #include "my_assert.h"
 #include "hash_table_cfg.h"
 #include "my_typedefs.h"
@@ -47,8 +48,6 @@ static HashValue HashCRC(const char* key, size_t len);
 NOINLINE HOT HashValue Hash(const char* key, size_t len) {
     ASSERT(key != NULL); $
 
-    // PRINT_POINTER(key);
-
     #if defined (HASH_ALWAYS_ZERO)
         return HashAlwaysZero(key, len);
     #elif defined (HASH_FIRST_CHAR)
@@ -65,6 +64,8 @@ NOINLINE HOT HashValue Hash(const char* key, size_t len) {
         return HashRol(key, len);
     #elif defined (HASH_MUR)
         return HashMur(key, len);
+    #elif defined (HASH_ASM)
+        return HashAsm(key, len);
     #elif defined (HASH_CRC)
         return HashCRC(key, len);
     #else 

@@ -74,18 +74,17 @@ void HashTable_Dump(const HashTable* hash_table) {
 
 NOINLINE
 HashTableError HashTable_InsertByKey(HashTable* hash_table, 
-                                     const StringView* key) {
+                                     const StringView key) {
     ASSERT(hash_table != NULL);
-    ASSERT(key != NULL);
-    ASSERT(key->str != NULL);
+    ASSERT(key.str != NULL);
 
-    if (key->len > kWordMaxLen) { $ return kHashTable_BadInsert; }
+    if (key.len > kWordMaxLen) { $ return kHashTable_BadInsert; }
 
-    HashValue hash_key = Hash(key->str, key->len);
+    HashValue hash_key = Hash(key.str, key.len);
     LListError llist_error = kLList_Success;
 
     char word_key[kWordMaxLen] ALIGN(kWordMaxLen) = {0};
-    memcpy(word_key, key->str, key->len);
+    memcpy(word_key, key.str, key.len);
 
     llist_error = LList_Insert(AccessBucket(hash_table, hash_key), word_key);
 
@@ -102,18 +101,17 @@ HashTableError HashTable_InsertByKey(HashTable* hash_table,
 }
 
 HashTableError HashTable_RemoveByKey(HashTable* hash_table, 
-                                     const StringView* key) {
+                                     const StringView key) {
     ASSERT(hash_table != NULL);
-    ASSERT(key != NULL);
-    ASSERT(key->str != NULL);
+    ASSERT(key.str != NULL);
 
-    if (key->len > kWordMaxLen) { $ return kHashTable_BadRemove; }
+    if (key.len > kWordMaxLen) { $ return kHashTable_BadRemove; }
 
-    HashValue hash_key = Hash(key->str, key->len);
+    HashValue hash_key = Hash(key.str, key.len);
     LListError llist_error = kLList_Success;
 
     char word_key[kWordMaxLen] ALIGN(kWordMaxLen) = {0};
-    memcpy(word_key, key->str, key->len);
+    memcpy(word_key, key.str, key.len);
 
     llist_error = LList_Remove(AccessBucket(hash_table, hash_key), word_key);
 
@@ -131,17 +129,16 @@ HashTableError HashTable_RemoveByKey(HashTable* hash_table,
 
 NOINLINE
 Counter HashTable_LookUpByKey(const HashTable* hash_table,
-                              const StringView* key) {
+                              const StringView key) {
     ASSERT(hash_table != NULL);
-    ASSERT(key != NULL);
-    ASSERT(key->str != NULL);
+    ASSERT(key.str != NULL);
 
-    if (key->len > kWordMaxLen) { $ return kHashTable_LookUpErr; }
+    if (key.len > kWordMaxLen) { $ return kHashTable_LookUpErr; }
 
-    HashValue hash_key = Hash(key->str, key->len);
+    HashValue hash_key = Hash(key.str, key.len);
 
     char word_key[kWordMaxLen] ALIGN(kWordMaxLen) = {0};
-    memcpy(word_key, key->str, key->len);
+    memcpy(word_key, key.str, key.len);
 
     return LList_LookUp(AccessBucket(hash_table, hash_key), word_key);
 }
