@@ -2,6 +2,10 @@
 
 Это `README` посвящено такой структуре данных как `Hash table` и её оптимизации. 
 
+## Постановка задачи
+
+Создание и исследование системы которая, получив текстовый файл, может ответить сколько раз встречается данное слово. Для этого будем использовать hash-таблицу.
+
 ## Hash table API
 
 `hash_table.h`
@@ -11,11 +15,11 @@ HashTableError HashTable_Ctor(HashTable* hash_table);
 void HashTable_Dtor(HashTable* hash_table);
 
 HashTableError HashTable_InsertByKey(HashTable* hash_table, 
-                                     const StringView* key);
+                                     const StringView key);
 HashTableError HashTable_RemoveByKey(HashTable* hash_table, 
-                                     const StringView* key);
+                                     const StringView key);
 Counter HashTable_LookUpByKey(const HashTable* hash_table,
-                              const StringView* key);
+                              const StringView key);
 ```
 
 ```cpp
@@ -46,16 +50,16 @@ struct StringView {
 
 ### Дисперсия
 
-| hash              | дисперсия |
-|-------------------|-----------|
-| always zero       | 104250    |
-| always first char | 3746      |
-| length            | 121412    |
-| char sum          | 7469      | 
-| normalized        | 101       |
-| crc               | 881       |
-| rol               | 15        |
-| murmur            | 10        |
+| hash              | дисперсия    |
+|-------------------|--------------|
+| always zero       | $10^5$       |
+| length            | $1.2 * 10^5$ |
+| char sum          | $7.5 * 10^3$ | 
+| always first char | $3.7 * 10^3$ |
+| crc               | $8 * 10^2$   |
+| normalized        | $10^2$       |
+| rol               | 15           |
+| murmur            | 10           |
 
 ### Результат
 
@@ -111,16 +115,16 @@ inline uint32_t HashScramble(uint32_t k) {
 
 |                    |                                               |
 |--------------------|-----------------------------------------------|
-| система            | **fedora 39 (linux kernel 6.8.5)**            |
+| система            | **fedora 40 (linux kernel 6.8.7)**            |
 | CPU                | **amd ryzen 5 3500u**                         |
 | частота            | **1.4 GHz**                                   |
 | температура        | **~80 C**                                     |
-| компилятор         | **clang 17.0**                                |
+| компилятор         | **clang 18.1**                                |
 | опции компилятора  | `-O2 -march=znver1 -flto`                     |
 | load factor        | **~7**                                        |
 | количество бакетов | **2003**                                      | 
 | текст              | **Bible** (~788 000 слов, ~14 000 уникальных) |
-| утиилиты           | **perf** и **hotspot**                        |
+| утиилиты           | **[perf](https://perf.wiki.kernel.org/index.php/Main_Page)**, **[hotspot](https://github.com/KDAB/hotspot)** и **[hyperfine](https://github.com/sharkdp/hyperfine?tab=readme-ov-file)**         |
 
 ## Первоначальная эффективность
 
@@ -147,13 +151,18 @@ inline uint32_t HashScramble(uint32_t k) {
 | `Hash`         | $0.705*10^{9}$   | $16.0$%      | 
 | `AccessBucket` | $0.465*10^{9}$   | $10.6$%      |
 
+Дальнейшее сравнение времени будем проводить по времени всей программы с помощью **hyperfine**
+
+Время без оптимизаций:
+**$(4.829 \pm 0.233)$ s**
+
 ## Оптимизация
 
 Как мы видим основную часть времени занимает `strncmp`, `Hash` и `AccessBucket`
 
 ### strncmp
 
-Слова в тексте не превышают 32 символов. Так же получая `const StringView*` мы копируем содержимое строки в буффер выровненный по 32. Всё это позволит использовать avx2 и выроненный load:
+Слова в тексте не превышают 32 символов. Так же получая `const StringView*` мы копируем содержимое строки в буфер выровненный по 32. Всё это позволит использовать avx2 и выроненный load:
 
 ```cpp
 #include <immintrin.h>
@@ -170,20 +179,14 @@ int FasterStrcmp(const char word_key1[kWordMaxLen],
 }
 ```
 
-|                | циклов затрачено | % от времени |
-|----------------|------------------|--------------|
-| `main`         | $3.668*10^{9}$   | $100$%       | 
-| `strcmp`       | $0.117*10^{9}$   | $3.2$%       |
-| `Hash`         | $0.597*10^{9}$   | $16.0$%      | 
-| `AccessBucket` | $0.401*10^{9}$   | $11.0$%      |
-
-Время уменьшилось с $35.8$% до $3.2$%, что значительно.
+Время при оптимизированной `strcmp`:
+**$(4.003 \pm 0.042)$ s**
 
 ### Hash
 
 Взглянем на ассемблер который порождает **clang 17.0** для функции хеша:
 ```cpp
-HashMur:                                # @HashMur
+HashMur:                                ;# @HashMur
         mov     eax, -1094799174
         cmp     rsi, 4
         jb      .LBB0_4
@@ -192,7 +195,7 @@ HashMur:                                # @HashMur
         xor     r8d, r8d
         shr     rdx, 2
         and     rcx, -4
-.LBB0_2:                                # =>This Inner Loop Header: Depth=1
+.LBB0_2:                                ;# =>This Inner Loop Header: Depth=1
         mov     r9d, dword ptr [rdi + 4*r8]
         inc     r8
         imul    r10d, r9d, -862048943
@@ -211,7 +214,7 @@ HashMur:                                # @HashMur
         and     rcx, 3
         je      .LBB0_5
         xor     r8d, r8d
-.LBB0_8:                                # =>This Inner Loop Header: Depth=1
+.LBB0_8:                                ;# =>This Inner Loop Header: Depth=1
         movzx   edx, byte ptr [rdi + rcx - 1]
         shl     r8d, 8
         or      edx, r8d
@@ -251,7 +254,11 @@ HashMur:                                # @HashMur
 
 "Медленными" среди них являются условные переходы и mov операторы с памятью
 
-Уменьшить количество обоих не представляется возможным с практической точки зрения, поэтому попытка оптимизации функции хеша является неоправданной.
+Мы можем уменьшить количество условных переходов до 1 с помощью джамп-таблицы
+[hash_asm.asm](/src/source/hash_asm.asm)
+
+Время при оптимизированных `strcmp + Hash`:
+**$(3.940 \pm 0.037)$ s**
 
 ### AccessBucket
 
@@ -286,27 +293,17 @@ LList* AccessBucket(const HashTable* hash_table, uint32_t hash_value) {
 
 ![acb_noprob](/images/acb_noprob.png)
 
-|                | циклов затрачено | % от времени |
-|----------------|------------------|--------------|
-| `main`         | $4.067*10^{9}$   | $100$%       | 
-| `strcmp`       | $1.454*10^{9}$   | $35.8$%      |
-| `Hash`         | $0.770*10^{9}$   | $19.0$%      | 
-| `AccessBucket` | $0.245*10^{9}$   | $6.0$%       |
 
-Данная изменение уменьшило время функции `AccessBucket` с $11$% до $6$%
+Время при оптимизированных `strcmp + Hash + AccessBucket`:
+**$(3.926 \pm 0.043)$ s**
 
-//FIXME barret reduction
+<!-- //FIXME barret reduction -->
 
 ## Результат всех оптимизаций
 
-|                | циклов затрачено | % от времени |
-|----------------|------------------|--------------|
-| `main`         | $3.553*10^{9}$   | $100$%       | 
-| `strcmp`       | $0.132*10^{9}$   | $3.7$%       |
-| `Hash`         | $0.699*10^{9}$   | $19.6$%      | 
-| `AccessBucket` | $0.207*10^{9}$   | $5.8$%       |
+В результате всех оптимизаций время с **$(4.829 \pm 0.233)$ s** уменьшилось до **$(3.926 \pm 0.043)$ s**
 
-Отдельные замеры данных общего времени программы: с $3.859 * 10^9$ до $3.367 * 10^9$, ускорение на $13$%
+Прирост производительности составляет **19%**.
 
 ## References
 

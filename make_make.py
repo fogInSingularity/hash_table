@@ -24,11 +24,11 @@ O_LEVEL = -O2
 MARCH = -march=znver1 -mavx2
 LIBRARY = -lm # for clang
 
-DEBUG_FLAGS = $(FLAGS) $(ASAN_FLAGS) -Og $(MARCH) -DDEBUG -ggdb -D_FORTIFY_SOURCE=2
-RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -DNDEBUG -fomit-frame-pointer -g -flto
+DEBUG_FLAGS = $(FLAGS) $(ASAN_FLAGS) -Og -g3 $(MARCH) -DDEBUG -ggdb -D_FORTIFY_SOURCE=2
+RELEASE_FLAGS = $(FLAGS) $(O_LEVEL) $(MARCH) -DNDEBUG -fomit-frame-pointer -g3 -flto
 
-LINK_FLAGS_DEBUG = $(LIBRARY) $(ASAN_FLAGS) -DDEBUG -ggdb 
-LINK_FLAGS_RELEASE = $(LIBRARY) -DNDEBUG -g -flto
+LINK_FLAGS_DEBUG = $(LIBRARY) $(ASAN_FLAGS) -DDEBUG -ggdb -g3
+LINK_FLAGS_RELEASE = $(LIBRARY) -DNDEBUG -g3 -flto
 
 ASM_FLAGS = -Werror -g -f elf64
 
@@ -45,8 +45,8 @@ ASM_FLAGS = -Werror -g -f elf64
 c_files = "./src/source/main.c ./src/source/hash_table.c ./src/source/load_file.c ./src/source/hash.c ./src/lib_code/source/utils.c ./src/lib_code/source/my_assert.c ./src/lib_code/source/bin_file.c ./src/lib_code/source/darray.c ./src/lib_code/source/llist.c ./src/lib_code/source/recalloc.c ./src/lib_code/source/faster_strcmp.c ./src/lib_code/source/file_wraper.c"
 c_objects = "./src/build/main.o ./src/build/hash_table.o ./src/build/load_file.o ./src/build/hash.o ./src/lib_code/build/utils.o ./src/lib_code/build/my_assert.o ./src/lib_code/build/bin_file.o ./src/lib_code/build/darray.o ./src/lib_code/build/llist.o ./src/lib_code/build/recalloc.o ./src/lib_code/build/faster_strcmp.o ./src/lib_code/build/file_wraper.o"
 
-asm_sources = ""
-asm_objects = ""
+asm_sources = "./src/source/hash_asm.asm"
+asm_objects = "./src/build/hash_asm.o"
 
 # all target: ------------------------------------------------------------------
 clean_dirs = "rm src/build/* src/lib_code/build/*"
