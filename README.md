@@ -1,6 +1,6 @@
 # Hash table
 
-Это `README` посвящено такой структуре данных как `Hash table` и её оптимизации. 
+Это `README` посвящено такой структуре данных как `Hash table` и её оптимизации.
 
 ## Постановка задачи
 
@@ -14,9 +14,9 @@
 HashTableError HashTable_Ctor(HashTable* hash_table);
 void HashTable_Dtor(HashTable* hash_table);
 
-HashTableError HashTable_InsertByKey(HashTable* hash_table, 
+HashTableError HashTable_InsertByKey(HashTable* hash_table,
                                      const StringView key);
-HashTableError HashTable_RemoveByKey(HashTable* hash_table, 
+HashTableError HashTable_RemoveByKey(HashTable* hash_table,
                                      const StringView key);
 Counter HashTable_LookUpByKey(const HashTable* hash_table,
                               const StringView key);
@@ -32,7 +32,7 @@ struct StringView {
 
 ## Выбор функции хеширования
 
-Рассмотрим следующие hash функции:
+Рассмотрим следующие hash-функции:
 
 |Значение хеша      |
 |-------------------|
@@ -41,6 +41,7 @@ struct StringView {
 |длинна слова       |
 |сумма букв         |
 |сумма букв / длину |
+|crc32              |
 |rol                |
 |murmur2            |
 
@@ -52,18 +53,18 @@ struct StringView {
 
 | hash              | дисперсия    |
 |-------------------|--------------|
-| always zero       | $10^5$       |
 | length            | $1.2 * 10^5$ |
-| char sum          | $7.5 * 10^3$ | 
+| always zero       | $1.0 * 10^5$ |
+| char sum          | $7.5 * 10^3$ |
 | always first char | $3.7 * 10^3$ |
-| crc               | $8 * 10^2$   |
-| normalized        | $10^2$       |
-| rol               | 15           |
-| murmur            | 10           |
+| crc32             | $8.8 * 10^2$ |
+| normalized        | $1.0 * 10^2$ |
+| rol               | $1.5 * 10^1$ |
+| murmur            | $1.0 * 10^1$ |
 
 ### Результат
 
-Как мы видим `murmur hash` имеет наименьшую дисперсию так что будем использовать именно этот алгоритм.
+Как мы видим `murmur hash` имеет наилучшую дисперсию так что будем использовать именно этот алгоритм.
 
 ### Реализация на C
 
@@ -109,9 +110,9 @@ inline uint32_t HashScramble(uint32_t k) {
 }
 ```
 
-## Детали 
+## Детали
 
-Будем проводить замер эффективности `LookUp` путем вставки каждого слова из текста в hash таблицу, после чего 30 раз сделаем `LookUp` каждого слова из текста.
+Будем проводить замер эффективности `LookUp` путем вставки каждого слова из текста в hash таблицу, после чего 150 раз сделаем `LookUp` каждого слова из текста.
 
 |                    |                                               |
 |--------------------|-----------------------------------------------|
@@ -122,9 +123,9 @@ inline uint32_t HashScramble(uint32_t k) {
 | компилятор         | **clang 18.1**                                |
 | опции компилятора  | `-O2 -march=znver1 -flto`                     |
 | load factor        | **~7**                                        |
-| количество бакетов | **2003**                                      | 
+| количество бакетов | **2003**                                      |
 | текст              | **Bible** (~788 000 слов, ~14 000 уникальных) |
-| утиилиты           | **[perf](https://perf.wiki.kernel.org/index.php/Main_Page)**, **[hotspot](https://github.com/KDAB/hotspot)** и **[hyperfine](https://github.com/sharkdp/hyperfine?tab=readme-ov-file)**         |
+| утиилиты           | **[perf](https://perf.wiki.kernel.org/index.php/Main_Page)**, **[hotspot](https://github.com/KDAB/hotspot)** и **[hyperfine](https://github.com/sharkdp/hyperfine?tab=readme-ov-file) (--runs=120 --warmup=30)** |
 
 ## Первоначальная эффективность
 
@@ -146,15 +147,15 @@ inline uint32_t HashScramble(uint32_t k) {
 
 |                | циклов затрачено | % от времени |
 |----------------|------------------|--------------|
-| `main`         | $4.392*10^{9}$   | $100$%       | 
+| `main`         | $4.392*10^{9}$   | $100$%       |
 | `strcmp`       | $1.575*10^{9}$   | $35.8$%      |
-| `Hash`         | $0.705*10^{9}$   | $16.0$%      | 
+| `Hash`         | $0.705*10^{9}$   | $16.0$%      |
 | `AccessBucket` | $0.465*10^{9}$   | $10.6$%      |
 
 Дальнейшее сравнение времени будем проводить по времени всей программы с помощью **hyperfine**
 
 Время без оптимизаций:
-**$(4.829 \pm 0.233)$ s**
+**$(4.83 \pm 0.23)$ s**
 
 ## Оптимизация
 
@@ -162,30 +163,30 @@ inline uint32_t HashScramble(uint32_t k) {
 
 ### strncmp
 
-Слова в тексте не превышают 32 символов. Так же получая `const StringView*` мы копируем содержимое строки в буфер выровненный по 32. Всё это позволит использовать avx2 и выроненный load:
+Слова в тексте не превышают $32$ символов. Так же получая `const StringView` мы копируем содержимое строки в буфер выровненный по $32$. Всё это позволит использовать **avx2** и **aligned load**:
 
 ```cpp
 #include <immintrin.h>
 
 #define kWordMaxLen 32
 
-int FasterStrcmp(const char word_key1[kWordMaxLen], 
+int FasterStrcmp(const char word_key1[kWordMaxLen],
                  const char word_key2[kWordMaxLen]) {
     __m256i load1 = _mm256_load_si256((const __m256i*)word_key1);
     __m256i load2 = _mm256_load_si256((const __m256i*)word_key2);
     __m256i xor_vec = _mm256_xor_si256(load1, load2);
-                                       
+
     return !_mm256_testz_si256(xor_vec, xor_vec);
 }
 ```
 
 Время при оптимизированной `strcmp`:
-**$(4.003 \pm 0.042)$ s**
+**$(4.00 \pm 0.04)$ s**
 
 ### Hash
 
 Взглянем на ассемблер который порождает **clang 17.0** для функции хеша:
-```cpp
+```mk
 HashMur:                                ;# @HashMur
         mov     eax, -1094799174
         cmp     rsi, 4
@@ -246,19 +247,19 @@ HashMur:                                ;# @HashMur
         ret
 ```
 
-Как мы видим основными операциями являются: 
+Как мы видим основными операциями являются:
 
 1) Арифметические операции: `imul`, `xor`, `or`, `shl`, `shr`, `and`
 2) Условные переходы: `jne`, `je`, `jb`
-3) mov операторы: `mov`, `movzx`
+3) **mov** операторы: `mov`, `movzx`
 
-"Медленными" среди них являются условные переходы и mov операторы с памятью
+**"Медленными"** среди них являются условные переходы и mov операторы с памятью
 
-Мы можем уменьшить количество условных переходов до 1 с помощью джамп-таблицы
-[hash_asm.asm](/src/source/hash_asm.asm)
+Мы можем уменьшить количество условных переходов до $1$ с помощью джамп-таблицы:
+**[hash_asm.asm](/src/source/hash_asm.asm)**
 
 Время при оптимизированных `strcmp + Hash`:
-**$(3.940 \pm 0.037)$ s**
+**$(3.94 \pm 0.04)$ s**
 
 ### AccessBucket
 
@@ -277,10 +278,10 @@ LList* AccessBucket(const HashTable* hash_table, uint32_t hash_value) {
 
 Операция div является достаточно дорогой, **~41 cpu cycle**, в сравнении с более простыми арифметическими операциями, которые выполняются за **~1 cpu cycle**
 
-В нашей реализации, размер хеш-таблицы фиксирован ( =2003 для данного текста ).
+В нашей реализации, размер hash-таблицы фиксирован ( =$2003$ для данного текста ).
 При фиксированном значение модуля мы можем представить его как комбинацию сложения, умножения и сдвигов. Для этого чаще всего используется техника называемая Barrett reduction.
 
-Более того, компилятор обладает этой техникой и сам может оптимизировать `%`, но в данной реализации вторым операндом является поле структуры, которое хранит 2003 и так как поле n_buckets не является `const`, компилятор не может выполнить эту оптимизацию.
+Более того, компилятор обладает этой техникой и сам может оптимизировать `%`, но в данной реализации вторым операндом является поле структуры, которое хранит $2003$ и так как поле n_buckets не является `const`, компилятор не может выполнить эту оптимизацию.
 
 Заменим `hash_table->n_buckets` на константу:
 ```cpp
@@ -293,17 +294,16 @@ LList* AccessBucket(const HashTable* hash_table, uint32_t hash_value) {
 
 ![acb_noprob](/images/acb_noprob.png)
 
-
 Время при оптимизированных `strcmp + Hash + AccessBucket`:
-**$(3.926 \pm 0.043)$ s**
+**$(3.93 \pm 0.04)$ s**
 
 <!-- //FIXME barret reduction -->
 
 ## Результат всех оптимизаций
 
-В результате всех оптимизаций время с **$(4.829 \pm 0.233)$ s** уменьшилось до **$(3.926 \pm 0.043)$ s**
+В результате всех оптимизаций время с **$(4.83 \pm 0.23)$ s** уменьшилось до **$(3.93 \pm 0.04)$ s**
 
-Прирост производительности составляет **19%**.
+Таким образом мы добились прирост производительности в **19%**.
 
 ## References
 
