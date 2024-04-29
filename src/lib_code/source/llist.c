@@ -22,7 +22,7 @@ typedef struct LLNode {
 
 // #define ERROR_M(error_m) fputs(RED BOLD "error: " RESET error_m "\n", stdout);
 
-HOT static bool CompareKeysEqual(const char word_key1[kWordMaxLen], 
+HOT static bool CompareKeysEqual(const char word_key1[kWordMaxLen],
                                  const char word_key2[kWordMaxLen]);
 
 // global ----------------------------------------------------------------------
@@ -80,7 +80,6 @@ void LList_Dtor(LList* list) {
     list->n_items = 0;
 }
 
-NOINLINE
 LListError LList_Insert(LList* list, const char word_key[kWordMaxLen]) {
     ASSERT(list != NULL);
 
@@ -170,15 +169,14 @@ Counter LList_LookUp(LList* list, const char word_key[kWordMaxLen]) {
         }
     }
 
-    return is_keys_equal 
-           ? iter_node->elem.n_copies 
+    return is_keys_equal
+           ? iter_node->elem.n_copies
            : 0;
 }
 
 // static ----------------------------------------------------------------------
 
-NOINLINE
-static bool CompareKeysEqual(const char word_key1[kWordMaxLen], 
+static bool CompareKeysEqual(const char word_key1[kWordMaxLen],
                              const char word_key2[kWordMaxLen]) {
     // int first_check = strcmp(word_key1, word_key2);
     int first_check = FasterStrcmp(word_key1, word_key2);

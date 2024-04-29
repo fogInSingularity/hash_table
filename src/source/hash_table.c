@@ -16,7 +16,6 @@
 
 // static ----------------------------------------------------------------------
 
-// NOINLINE
 LList* AccessBucket(const HashTable* hash_table, HashValue hash_value);
 
 // global ----------------------------------------------------------------------
@@ -72,8 +71,7 @@ void HashTable_Dump(const HashTable* hash_table) {
 
 }
 
-NOINLINE
-HashTableError HashTable_InsertByKey(HashTable* hash_table, 
+HashTableError HashTable_InsertByKey(HashTable* hash_table,
                                      const StringView key) {
     ASSERT(hash_table != NULL);
     ASSERT(key.str != NULL);
@@ -100,7 +98,7 @@ HashTableError HashTable_InsertByKey(HashTable* hash_table,
     return kHashTable_Success;
 }
 
-HashTableError HashTable_RemoveByKey(HashTable* hash_table, 
+HashTableError HashTable_RemoveByKey(HashTable* hash_table,
                                      const StringView key) {
     ASSERT(hash_table != NULL);
     ASSERT(key.str != NULL);
@@ -127,7 +125,6 @@ HashTableError HashTable_RemoveByKey(HashTable* hash_table,
     }
 }
 
-NOINLINE
 Counter HashTable_LookUpByKey(const HashTable* hash_table,
                               const StringView key) {
     ASSERT(hash_table != NULL);
@@ -145,7 +142,7 @@ Counter HashTable_LookUpByKey(const HashTable* hash_table,
 
 // static ----------------------------------------------------------------------
 
-NOINLINE
+// NOINLINE
 LList* AccessBucket(const HashTable* hash_table, HashValue hash_value) {
     ASSERT(hash_table != NULL);
 

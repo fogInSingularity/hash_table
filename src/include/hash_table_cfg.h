@@ -12,7 +12,7 @@ static const unsigned long long kNumberOfBuckets = 2003ull;
 // // #define HASH_ROR
 // #define HASH_ROL
 // #define HASH_MUR
-#define HASH_ASM
-// #define HASH_CRC
+// #define HASH_ASM
+#define HASH_CRC
 
 #endif  // HASH_TABLE_CFG_H_

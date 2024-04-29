@@ -26,10 +26,10 @@ __attribute__((noinline))
 FatPointer ParseFile(const int argc, const char** argv, BinData* ret_bin_data) {
     ASSERT(argv != NULL);
     if (argc < 3) { return (FatPointer){NULL, 0}; }
-    
+
     FILE* file = fopen(argv[1], "rb");
     if (file == NULL) { return (FatPointer){NULL, 0}; }
-    
+
     BinData file_data = {};
     GetData(&file_data, file);
     fclose(file);
@@ -94,13 +94,13 @@ FatPointer ParseToWords(BinData* file_data) {
 
         iter_str = SkipSpaces(iter_str);
     }
-    
-    StringView* parsed_words = (StringView*)calloc(number_words, 
+
+    StringView* parsed_words = (StringView*)calloc(number_words,
                                                    sizeof(StringView));
     if (parsed_words == NULL) {
         return (FatPointer){NULL, 0};
     }
-     
+
 
     Index iter_arr = 0;
     iter_str = file_data->buf;

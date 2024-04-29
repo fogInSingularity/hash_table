@@ -5,7 +5,6 @@
 #include <nmmintrin.h>
 
 #include "debug.h"
-#include "hash_asm.h"
 #include "my_assert.h"
 #include "hash_table_cfg.h"
 #include "my_typedefs.h"
@@ -40,12 +39,13 @@ static HashValue HashRol(const char* key, size_t len);
 __attribute__((unused))
 HOT static HashValue HashMur(const char* key, size_t len);
 __attribute__((unused))
-static HashValue HashCRC(const char* key, size_t len);
+HOT static HashValue HashCRC(const char* key, size_t len);
+__attribute__((unused))
+HOT static HashValue HashCRCFast(const char* key, size_t len);
 
 // global ----------------------------------------------------------------------
 
-// __attribute__((noinline))
-NOINLINE HOT HashValue Hash(const char* key, size_t len) {
+HOT HashValue Hash(const char* key, size_t len) {
     ASSERT(key != NULL); $
 
     #if defined (HASH_ALWAYS_ZERO)
@@ -67,8 +67,14 @@ NOINLINE HOT HashValue Hash(const char* key, size_t len) {
     #elif defined (HASH_ASM)
         return HashAsm(key, len);
     #elif defined (HASH_CRC)
-        return HashCRC(key, len);
-    #else 
+        // HashValue res1 = HashCRC(key, len);
+        // HashValue res2 = HashCRCFast(key, len);
+        // if (res1 != res2) {
+        //     fprintf(stdout, "Fuck %u %u\n", res1, res2);
+        // }
+        return HashCRCFast(key, len);
+        // return HashCRC(key, len);
+    #else
         static_assert(0, "! No hash functions were defined");
     #endif
 }
@@ -80,7 +86,7 @@ static HashValue HashAlwaysZero(const char* key, size_t len) {
     ASSERT(key != NULL);
     USE_VAR(key);
     USE_VAR(len);
-    
+
     return 0;
 }
 
@@ -144,11 +150,11 @@ static HashValue HashRol(const char* key, size_t len) {
 }
 
 __attribute__((unused))
-static HashValue HashMur(const char* key, size_t len) {
+HOT static HashValue HashMur(const char* key, size_t len) {
     ASSERT(key != NULL);
 
     const uint8_t* ukey = (const uint8_t*)key;
-    
+
     uint32_t h = 0xbebeb0ba;
     uint32_t k = 0;
 
@@ -184,28 +190,40 @@ __attribute__((unused))
 HOT static HashValue HashCRC(const char* key, size_t len) {
     ASSERT(key != NULL);
 
-    uint64_t crc32 = 0xbebeb0ba;
+    // uint64_t crc32 = 0xbebeb0ba;
+    uint64_t crc32 = 0;
 
     if (len == 0) UNLIKELY { return crc32; }
 
-    Counter nFullOps = len >> 3;      // 8-wide steps
-    Counter trailer = len & 0b111UL;  // remaining 7 steps
+
+    for (Index i = 0; i < len; i++) {
+        __asm__ volatile ("crc32 %0, byte ptr [%1]\n"
+                          : "=r" (crc32)
+                          : "r" (key), "r" (crc32));
+        key++;
+    }
+
+    return crc32;
+}
+
+__attribute__((unused))
+HOT static HashValue HashCRCFast(const char* key, size_t len) {
+    ASSERT(key != NULL);
+
+    uint32_t crc32 = 0;
+    if (len == 0) UNLIKELY { return crc32; }
+
+    Counter nFullOps = len >> 1;      // 8-wide steps
+    Counter trailer = len & 0b1UL;  // remaining 7 steps
 
     for (Index i = 0; i < nFullOps; i++) {
-        crc32 = _mm_crc32_u64(crc32, *(uint64_t*)key);
-        key += sizeof(uint64_t);
-    }
-
-    if (trailer % 0b100UL) {
-        crc32 = _mm_crc32_u32(crc32, *(uint32_t*)key);
-    }
-
-    if (trailer % 0b010UL) {
         crc32 = _mm_crc32_u16(crc32, *(uint16_t*)key);
+        key += sizeof(uint16_t);
     }
 
     if (trailer % 0b001UL) {
         crc32 = _mm_crc32_u8(crc32, *(uint8_t*)key);
+        key += sizeof(uint8_t);
     }
 
     return crc32;
@@ -220,11 +238,11 @@ INLINE static inline uint32_t HashScramble(uint32_t k) {
 }
 
 static HashValue Ror(HashValue hash_value) {
-    return (hash_value >> 1) 
+    return (hash_value >> 1)
            | (hash_value << (sizeof(hash_value) * kBitsInByte - 1));
 }
 
 static HashValue Rol(HashValue hash_value) {
-    return (hash_value << 1) 
+    return (hash_value << 1)
            | (hash_value >> (sizeof(hash_value) * kBitsInByte - 1));
 }

@@ -9,7 +9,7 @@
 #include "debug.h"
 
 void ClearBeforeTerm(HashTable* hash_table,
-                     BinData* file_data, 
+                     BinData* file_data,
                      FatPointer* str_arr);
 
 int main(const int argc, const char** argv) {
@@ -30,19 +30,19 @@ int main(const int argc, const char** argv) {
     for (Index i = 0; i < str_arr.size_in_bytes / sizeof(StringView); i++) {
         ht_error = HashTable_InsertByKey(&hash_table,
                                          *((StringView*)str_arr.ptr + i));
-        if (ht_error != kHashTable_Success) { 
-            fprintf(stderr, "Insertion failed\n"); 
+        if (ht_error != kHashTable_Success) {
+            fprintf(stderr, "Insertion failed\n");
         }
     }
 
     const Counter number_of_iters = 150;
     for (Counter iter = 0; iter < number_of_iters; iter++) {
-        Counter num_in_text = 0; 
+        Counter num_in_text = 0;
         for (Index i = 0; i < str_arr.size_in_bytes / sizeof(StringView); i++) {
             num_in_text = HashTable_LookUpByKey(&hash_table,
                                                 *((StringView*)str_arr.ptr + i));
             if (num_in_text == kHashTable_LookUpErr) {
-                fprintf(stderr, "LookUp failed\n"); 
+                fprintf(stderr, "LookUp failed\n");
             }
         }
     }

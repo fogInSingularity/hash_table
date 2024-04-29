@@ -27,13 +27,10 @@ HashTableError HashTable_Ctor(HashTable* hash_table);
 void HashTable_Dtor(HashTable* hash_table);
 void HashTable_Dump(const HashTable* hash_table);
 
-NOINLINE
-HashTableError HashTable_InsertByKey(HashTable* hash_table, 
+HashTableError HashTable_InsertByKey(HashTable* hash_table,
                                     const StringView key);
-NOINLINE
-HashTableError HashTable_RemoveByKey(HashTable* hash_table, 
+HashTableError HashTable_RemoveByKey(HashTable* hash_table,
                                     const StringView key);
-NOINLINE
 Counter HashTable_LookUpByKey(const HashTable* hash_table,
                               const StringView key);
 
