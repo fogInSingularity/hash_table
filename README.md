@@ -6,6 +6,10 @@
 
 Создание и исследование системы которая, получив текстовый файл, может ответить сколько раз встречается данное слово. Для этого будем использовать hash-таблицу.
 
+## Немного о Hash table
+
+Хеш таблица - структура данных, реализующая интерфейс ассоциативного массива. Позволяет по ключу получить доступ к значению ключа. Основным отличием является использование хеш-функции (функция которая соотносит последовательности бит числовое значение, чаще всего не взаимнооднозначно), для доступа к значению.
+
 ## Hash table API
 
 `hash_table.h`
@@ -38,9 +42,9 @@ struct StringView {
 |-------------------|
 |всегда 0           |
 |всегда первая буква|
-|длинна слова       |
+|длина слова       |
 |сумма букв         |
-|сумма букв / длину |
+|(сумма букв) / длину |
 |crc32              |
 |rol                |
 |murmur2            |
@@ -51,62 +55,36 @@ struct StringView {
 
 ### Дисперсия
 
-| hash              | дисперсия    |
-|-------------------|--------------|
-| length            | $1.2 * 10^5$ |
-| always zero       | $1.0 * 10^5$ |
-| char sum          | $7.5 * 10^3$ |
-| always first char | $3.7 * 10^3$ |
-| crc32             | $8.8 * 10^2$ |
-| normalized        | $1.0 * 10^2$ |
-| rol               | $1.5 * 10^1$ |
-| murmur            | $1.0 * 10^1$ |
+| hash              | дисперсия    |        |
+|-------------------|--------------|--------|
+| always zero       | $1.0 * 10^5$ | 100000 |
+| length            | $1.2 * 10^4$ | 12000  |
+| char sum          | $7.5 * 10^3$ | 7500   |
+| always first char | $3.7 * 10^3$ | 3700   |
+| normalized        | $1.0 * 10^2$ | 100    |
+| rol               | $1.5 * 10^1$ | 15     |
+| murmur            | $1.0 * 10^1$ | 10     |
+| crc32             | $7.3 * 10^0$ | 7.3    |
 
 ### Результат
 
-Как мы видим `murmur hash` имеет наилучшую дисперсию так что будем использовать именно этот алгоритм.
+Как мы видим `crc32` имеет наилучшую дисперсию так что будем использовать именно этот алгоритм.
 
 ### Реализация на C
 
 ```cpp
-uint32_t HashMur(const uint8_t* ukey, size_t len) {
-    uint32_t h = 0xbebeb0ba;
-    uint32_t k = 0;
+uint32_t HashCRC(const char* key, size_t len) {
+    uint64_t crc32 = 0xbebeb0ba;
+    if (len == 0) { return crc32; }
 
-    for (size_t i = len >> 2; i; i--) {
-        memcpy(&k, ukey, sizeof(uint32_t));
-
-        ukey += sizeof(uint32_t);
-
-        h ^= HashScramble(k);
-        h = (h << 13) | (h >> 19);
-        h = h * 5 + 0xe6546b64;
+    for (Index i = 0; i < len; i++) {
+        __asm__ volatile ("crc32 %0, byte ptr [%1]\n"
+                          : "=r" (crc32)
+                          : "r" (key), "r" (crc32));
+        key++;
     }
 
-    k = 0;
-    for (size_t i = len & 3; i != 0; i--) {
-        k <<= 8;
-        k |= ukey[i - 1];
-    }
-
-    h ^= HashScramble(k);
-
-    h ^= (uint32_t)len;
-    h ^= h >> 16;
-    h *= 0x85ebca6b;
-    h ^= h >> 13;
-    h *= 0xc2b2ae35;
-    h ^= h >> 16;
-
-    return h;
-}
-
-inline uint32_t HashScramble(uint32_t k) {
-    k *= 0xcc9e2d51;
-    k = (k << 15) | (k >> 17);
-    k *= 0x1b873593;
-
-    return k;
+    return crc32;
 }
 ```
 
@@ -125,37 +103,23 @@ inline uint32_t HashScramble(uint32_t k) {
 | load factor        | **~7**                                        |
 | количество бакетов | **2003**                                      |
 | текст              | **Bible** (~788 000 слов, ~14 000 уникальных) |
-| утиилиты           | **[perf](https://perf.wiki.kernel.org/index.php/Main_Page)**, **[hotspot](https://github.com/KDAB/hotspot)** и **[hyperfine](https://github.com/sharkdp/hyperfine?tab=readme-ov-file) (--runs=120 --warmup=30)** |
+| утиилиты           | **[perf](https://perf.wiki.kernel.org/index.php/Main_Page)**, **[hotspot](https://github.com/KDAB/hotspot)** и **[hyperfine](https://github.com/sharkdp/hyperfine?tab=readme-ov-file) (--runs=20 --warmup=5)** |
 
 ## Первоначальная эффективность
 
-### main
-
-![noop_main](/images/noop_main.png)
-
-### strcmp
-
-![noop_strcmp](/images/noop_strcmp.png)
-
-### hash
-
-![noop_hash](/images/noop_hash.png)
-
-### access bucket
-
-![noop_acb](/images/noop_acb.png)
+![noop](/images/noop.png)
 
 |                | циклов затрачено | % от времени |
 |----------------|------------------|--------------|
-| `main`         | $4.392*10^{9}$   | $100$%       |
-| `strcmp`       | $1.575*10^{9}$   | $35.8$%      |
-| `Hash`         | $0.705*10^{9}$   | $16.0$%      |
-| `AccessBucket` | $0.465*10^{9}$   | $10.6$%      |
+| `main`         | $1.881*10^{10}$  | $100$%       |
+| `strcmp`       | $0.740*10^{10}$  | $39.3$%      |
+| `Hash`         | $0.151*10^{10}$  | $8.1$%       |
+| `AccessBucket` | $0.170*10^{10}$  | $9.0$%       |
 
 Дальнейшее сравнение времени будем проводить по времени всей программы с помощью **hyperfine**
 
 Время без оптимизаций:
-**$(4.83 \pm 0.23)$ s**
+**$(12.8 \pm 0.7)$ s**
 
 ## Оптимизация
 
@@ -181,85 +145,42 @@ int FasterStrcmp(const char word_key1[kWordMaxLen],
 ```
 
 Время при оптимизированной `strcmp`:
-**$(4.00 \pm 0.04)$ s**
+**$(10.554 \pm 0.022)$ s**, прирост производительности на $21$% (в сравнении с реализацией без оптимизаций)
 
 ### Hash
 
-Взглянем на ассемблер который порождает **clang 17.0** для функции хеша:
-```mk
-HashMur:                                ;# @HashMur
-        mov     eax, -1094799174
-        cmp     rsi, 4
-        jb      .LBB0_4
-        mov     rdx, rsi
-        mov     rcx, rsi
-        xor     r8d, r8d
-        shr     rdx, 2
-        and     rcx, -4
-.LBB0_2:                                ;# =>This Inner Loop Header: Depth=1
-        mov     r9d, dword ptr [rdi + 4*r8]
-        inc     r8
-        imul    r10d, r9d, -862048943
-        imul    r9d, r9d, 380141568
-        shr     r10d, 17
-        or      r10d, r9d
-        imul    r9d, r10d, 461845907
-        xor     r9d, eax
-        rorx    eax, r9d, 19
-        lea     eax, [rax + 4*rax - 430675100]
-        cmp     rdx, r8
-        jne     .LBB0_2
-        add     rdi, rcx
-.LBB0_4:
-        mov     rcx, rsi
-        and     rcx, 3
-        je      .LBB0_5
-        xor     r8d, r8d
-.LBB0_8:                                ;# =>This Inner Loop Header: Depth=1
-        movzx   edx, byte ptr [rdi + rcx - 1]
-        shl     r8d, 8
-        or      edx, r8d
-        dec     rcx
-        mov     r8d, edx
-        jne     .LBB0_8
-        jmp     .LBB0_6
-.LBB0_5:
-        xor     edx, edx
-.LBB0_6:
-        imul    ecx, edx, -862048943
-        imul    edx, edx, 380141568
-        xor     eax, esi
-        shr     ecx, 17
-        or      ecx, edx
-        imul    ecx, ecx, 461845907
-        xor     eax, ecx
-        mov     ecx, eax
-        shr     ecx, 16
-        xor     ecx, eax
-        imul    eax, ecx, -2048144789
-        mov     ecx, eax
-        shr     ecx, 13
-        xor     ecx, eax
-        imul    ecx, ecx, -1028477387
-        mov     eax, ecx
-        shr     eax, 16
-        xor     eax, ecx
-        ret
+В первоначальной реализации каждый символ хэшировался поочередно, однако мы  можоем векторизировать данный процесс.
+
+Векторизируем по 2 элемента:
+```c
+
+__attribute__((unused))
+uint32_t HashCRCFast(const char* key, size_t len) {
+    uint32_t crc32 = 0;
+    if (len == 0) { return crc32; }
+
+    for (Index i = 0; i < len >> 1; i++) {
+        __asm__ volatile ("crc32 %0, word ptr [%1]\n"
+                          : "=r" (crc32)
+                          : "r" (key), "r" (crc32));
+        key += sizeof(uint16_t);
+    }
+
+    if (trailer & 0b1) {
+        __asm__ volatile ("crc32 %0, byte ptr [%1]\n"
+                          : "=r" (crc32)
+                          : "r" (key), "r" (crc32));
+        key += sizeof(uint8_t);
+    }
+
+    return crc32;
+}
 ```
 
-Как мы видим основными операциями являются:
-
-1) Арифметические операции: `imul`, `xor`, `or`, `shl`, `shr`, `and`
-2) Условные переходы: `jne`, `je`, `jb`
-3) **mov** операторы: `mov`, `movzx`
-
-**"Медленными"** среди них являются условные переходы и mov операторы с памятью
-
-Мы можем уменьшить количество условных переходов до $1$ с помощью джамп-таблицы:
-**[hash_asm.asm](/src/source/hash_asm.asm)**
+Стоит отметить, что хэширование не по 2 символа за раз а например по 8, приводит к частой коллизии, причину которой я не смог выяснить.
 
 Время при оптимизированных `strcmp + Hash`:
-**$(3.94 \pm 0.04)$ s**
+**$(9.74 \pm 0.06)$ s**, прирост производительности на $8$% (в сравнении с оптимизацией только strcmp).
 
 ### AccessBucket
 
@@ -295,15 +216,15 @@ LList* AccessBucket(const HashTable* hash_table, uint32_t hash_value) {
 ![acb_noprob](/images/acb_noprob.png)
 
 Время при оптимизированных `strcmp + Hash + AccessBucket`:
-**$(3.93 \pm 0.04)$ s**
+**$(9.73 \pm 0.04)$ s**, что не отличается от предыдущего результата.
 
 <!-- //FIXME barret reduction -->
 
 ## Результат всех оптимизаций
 
-В результате всех оптимизаций время с **$(4.83 \pm 0.23)$ s** уменьшилось до **$(3.93 \pm 0.04)$ s**
+В результате всех оптимизаций время с **$(12.8 \pm 0.7)$ s** уменьшилось до **$(9.73 \pm 0.04)$ s**
 
-Таким образом мы добились прирост производительности в **19%**.
+Таким образом мы добились прирост производительности в **31%**.
 
 ## References
 

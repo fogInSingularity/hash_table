@@ -4,7 +4,6 @@ import numpy as np
 
 number_of_nuckets = 2003
 bar_width = 1.5
-max_hight = 50
 
 def find_destr(data):
     length = len(data)
@@ -100,7 +99,6 @@ axs[1, 0].set_title('sum of chars')
 
 axs[1, 1].bar([i for i in range(number_of_nuckets)], data_crc, width=bar_width, )
 axs[1, 1].set_title('crc')
-axs[1, 1].set_ylim(0, max_hight)
 
 axs[1, 2].bar([i for i in range(number_of_nuckets)], data_rol, width=bar_width)
 axs[1, 2].set_title('rol')
